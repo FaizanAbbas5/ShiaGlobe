@@ -433,6 +433,230 @@
       shrine: '#fbbf24'
     };
 
+    const imamsData = [
+      {
+        id: 1,
+        name: "Ali ibn Abi Talib",
+        arabic: "علي بن أبي طالب",
+        titles: "Amir al-Mu'minin",
+        lifespan: "23 BH – 40 AH",
+        period: [11, 40],
+        bio: "The First Imam, cousin and son-in-law of the Prophet. Born inside the Kaaba, he was among the earliest believers and is remembered for knowledge, justice, and courage. His caliphate (35–40 AH) was dominated by civil wars that shaped later Islamic history.",
+        events: [
+          { year: -23, name: "Birth in Kaaba", desc: "Born inside the Holy Kaaba in Mecca, a unique distinction.", lat: 21.4225, lng: 39.8262, type: "birth" },
+          { year: -13, name: "Early acceptance of Islam", desc: "Accepted Islam in childhood and grew up in the Prophet's household.", lat: 21.4225, lng: 39.8262, type: "life" },
+          { year: -1, name: "Night of Hijra (Laylat al-Mabit)", desc: "Slept in the Prophet's bed during the Hijra plot and returned trusts to their owners.", lat: 21.4225, lng: 39.8262, type: "political" },
+          { year: 2, name: "Battle of Badr", desc: "Fought at Badr—first major battle of Islam.", lat: 23.7500, lng: 38.7900, type: "battle" },
+          { year: 2, name: "Marriage to Fatimah", desc: "Married Lady Fatimah al-Zahra; the Imams descend through them.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 3, name: "Battle of Uhud", desc: "Defended the Prophet during the setback at Uhud.", lat: 24.4950, lng: 39.6510, type: "battle" },
+          { year: 5, name: "Battle of Khandaq", desc: "Dueled and defeated Amr ibn Abd Wudd at the Trench.", lat: 24.4790, lng: 39.6070, type: "battle" },
+          { year: 7, name: "Conquest of Khaybar", desc: "Key role in the capture of Khaybar.", lat: 25.4190, lng: 39.3870, type: "battle" },
+          { year: 10, name: "Ghadir Khumm", desc: "Present at Ghadir Khumm where the Prophet declared Wilayah.", lat: 22.7900, lng: 39.0200, type: "life" },
+          { year: 35, name: "Caliphate", desc: "Accepted the Caliphate after Uthman's death.", lat: 24.4672, lng: 39.6111, type: "political" },
+          { year: 36, name: "Battle of Camel", desc: "Battle near Basra.", lat: 30.5000, lng: 47.8167, type: "battle" },
+          { year: 36, name: "Capital to Kufa", desc: "Transferred the capital from Medina to Kufa.", lat: 32.0333, lng: 44.4000, type: "migration" },
+          { year: 37, name: "Battle of Siffin", desc: "Protracted conflict against Mu'awiyah; ended in arbitration.", lat: 35.9500, lng: 39.0167, type: "battle" },
+          { year: 38, name: "Battle of Nahrawan", desc: "Defeated the Kharijites.", lat: 33.3333, lng: 44.3833, type: "battle" },
+          { year: 40, name: "Martyrdom", desc: "Struck in Kufa Mosque; died on 21 Ramadan.", lat: 32.0333, lng: 44.4000, type: "death" },
+          { year: 40, name: "Burial", desc: "Buried in Najaf (kept secret initially).", lat: 31.9954, lng: 44.3145, type: "shrine" }
+        ]
+      },
+      {
+        id: 2,
+        name: "Hasan ibn Ali",
+        arabic: "الحسن بن علي",
+        titles: "Al-Mujtaba",
+        lifespan: "3 – 50 AH",
+        period: [40, 50],
+        bio: "The Second Imam. He assumed leadership after Imam Ali and faced Mu'awiyah's military pressure. His treaty aimed to prevent civil bloodshed and preserve the community.",
+        events: [
+          { year: 3, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 36, name: "Kufa", desc: "Moved with Imam Ali to Kufa when it became the capital.", lat: 32.0333, lng: 44.4000, type: "migration" },
+          { year: 40, name: "Imamate", desc: "Assumed Imamate after Ali's martyrdom.", lat: 32.0333, lng: 44.4000, type: "life" },
+          { year: 41, name: "Peace Treaty", desc: "Treaty with Mu'awiyah to avoid war.", lat: 33.3152, lng: 44.3661, type: "political" },
+          { year: 41, name: "Return to Medina", desc: "Returned to Medina, focusing on teaching and charity.", lat: 24.4672, lng: 39.6111, type: "migration" },
+          { year: 50, name: "Martyrdom", desc: "Poisoned in Medina.", lat: 24.4672, lng: 39.6111, type: "death" },
+          { year: 50, name: "Burial", desc: "Buried in Jannat al-Baqi.", lat: 24.4672, lng: 39.6111, type: "shrine" }
+        ]
+      },
+      {
+        id: 3,
+        name: "Husayn ibn Ali",
+        arabic: "الحسين بن علي",
+        titles: "Sayyid al-Shuhada",
+        lifespan: "4 – 61 AH",
+        period: [50, 61],
+        bio: "The Third Imam. Refused allegiance to Yazid and rose to protect the moral core of Islam. His martyrdom at Karbala became the defining symbol of resistance to tyranny.",
+        events: [
+          { year: 4, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 50, name: "Imamate", desc: "Assumed Imamate after Imam Hasan's martyrdom.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 60, name: "Refusal of Bay'ah", desc: "Refused to pledge allegiance to Yazid.", lat: 24.4672, lng: 39.6111, type: "political" },
+          { year: 60, name: "Stay in Mecca", desc: "Went to Mecca and remained there for months.", lat: 21.4225, lng: 39.8262, type: "migration" },
+          { year: 60, name: "Muslim b. Aqil in Kufa", desc: "Sent Muslim ibn Aqil to assess support; he was later killed.", lat: 32.0333, lng: 44.4000, type: "political" },
+          { year: 61, name: "Arrival at Karbala", desc: "Camped at Karbala on 2 Muharram.", lat: 32.6160, lng: 44.0323, type: "travel" },
+          { year: 61, name: "Battle of Karbala", desc: "Martyred on Ashura (10 Muharram).", lat: 32.6160, lng: 44.0323, type: "battle" },
+          { year: 61, name: "Burial", desc: "Buried in Karbala.", lat: 32.6160, lng: 44.0323, type: "shrine" }
+        ]
+      },
+      {
+        id: 4,
+        name: "Ali ibn Husayn",
+        arabic: "علي بن الحسين",
+        titles: "Zayn al-Abidin",
+        lifespan: "38 – 95 AH",
+        period: [61, 95],
+        bio: "The Fourth Imam. Survivor of Karbala who guided the community through spiritual renewal, prayers, and ethical teaching under Umayyad repression.",
+        events: [
+          { year: 38, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 61, name: "Captivity in Kufa", desc: "Taken captive to Kufa after Karbala.", lat: 32.0333, lng: 44.4000, type: "political" },
+          { year: 61, name: "Sermon in Damascus", desc: "Addressed the public in Damascus, clarifying the tragedy.", lat: 33.5138, lng: 36.2765, type: "political" },
+          { year: 62, name: "Return to Medina", desc: "Returned to Medina.", lat: 24.4672, lng: 39.6111, type: "migration" },
+          { year: 80, name: "Sahifa Sajjadiya", desc: "Legacy of supplications shaping Shi'i spirituality (approx. period of teaching).", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 95, name: "Martyrdom", desc: "Poisoned in Medina.", lat: 24.4672, lng: 39.6111, type: "death" },
+          { year: 95, name: "Burial", desc: "Buried in Jannat al-Baqi.", lat: 24.4672, lng: 39.6111, type: "shrine" }
+        ]
+      },
+      {
+        id: 5,
+        name: "Muhammad al-Baqir",
+        arabic: "محمد الباقر",
+        titles: "Baqir al-Ulum",
+        lifespan: "57 – 114 AH",
+        period: [95, 114],
+        bio: "The Fifth Imam. Expanded teaching circles in Medina and laid foundations for systematic jurisprudence and theology.",
+        events: [
+          { year: 57, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 95, name: "Imamate", desc: "Began Imamate after Imam Sajjad.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 105, name: "Journey to Damascus", desc: "Summoned to Damascus; engaged in debates.", lat: 33.5138, lng: 36.2765, type: "travel" },
+          { year: 110, name: "Medina teaching circle", desc: "Major period of disseminating hadith and jurisprudence.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 114, name: "Martyrdom", desc: "Poisoned in Medina.", lat: 24.4672, lng: 39.6111, type: "death" },
+          { year: 114, name: "Burial", desc: "Buried in Jannat al-Baqi.", lat: 24.4672, lng: 39.6111, type: "shrine" }
+        ]
+      },
+      {
+        id: 6,
+        name: "Ja'far al-Sadiq",
+        arabic: "جعفر الصادق",
+        titles: "Al-Sadiq",
+        lifespan: "83 – 148 AH",
+        period: [114, 148],
+        bio: "The Sixth Imam. Formalized the Ja'fari school; taught during the Umayyad-Abbasid transition.",
+        events: [
+          { year: 83, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 114, name: "Imamate", desc: "Began Imamate after Imam Baqir.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 132, name: "Abbasid Revolution", desc: "Witnessed Umayyad fall and Abbasid rise.", lat: 24.4672, lng: 39.6111, type: "political" },
+          { year: 135, name: "Summoned to Al-Hirah", desc: "Summoned by Abbasid authorities.", lat: 31.8944, lng: 44.3472, type: "travel" },
+          { year: 145, name: "Scholarly peak", desc: "Peak teaching period; transmission of hadith and legal principles.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 148, name: "Martyrdom", desc: "Poisoned in Medina.", lat: 24.4672, lng: 39.6111, type: "death" },
+          { year: 148, name: "Burial", desc: "Buried in Jannat al-Baqi.", lat: 24.4672, lng: 39.6111, type: "shrine" }
+        ]
+      },
+      {
+        id: 7,
+        name: "Musa al-Kazim",
+        arabic: "موسى الكاظم",
+        titles: "Al-Kazim",
+        lifespan: "128 – 183 AH",
+        period: [148, 183],
+        bio: "The Seventh Imam. Known for patience; endured repeated imprisonments under Abbasid caliphs.",
+        events: [
+          { year: 128, name: "Birth", desc: "Born in Al-Abwa.", lat: 23.1167, lng: 39.2000, type: "birth" },
+          { year: 148, name: "Imamate", desc: "Began Imamate after Imam Sadiq.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 179, name: "Arrest & transfer", desc: "Arrested and moved from Medina toward Iraq.", lat: 24.4672, lng: 39.6111, type: "political" },
+          { year: 179, name: "Basra Prison", desc: "Imprisoned in Basra.", lat: 30.5000, lng: 47.8000, type: "political" },
+          { year: 180, name: "Baghdad Prisons", desc: "Held in Baghdad prisons.", lat: 33.3406, lng: 44.4003, type: "political" },
+          { year: 183, name: "Martyrdom", desc: "Poisoned in prison.", lat: 33.3406, lng: 44.4003, type: "death" },
+          { year: 183, name: "Burial", desc: "Buried in Kadhimiya.", lat: 33.3806, lng: 44.3403, type: "shrine" }
+        ]
+      },
+      {
+        id: 8,
+        name: "Ali al-Rida",
+        arabic: "علي الرضا",
+        titles: "Al-Rida",
+        lifespan: "148 – 203 AH",
+        period: [183, 203],
+        bio: "The Eighth Imam. Forced into the Abbasid court as heir-apparent; known for debates and the Golden Chain narration.",
+        events: [
+          { year: 148, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 183, name: "Imamate", desc: "Began Imamate after Imam Kazim.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 200, name: "Forced journey east", desc: "Taken from Medina toward Khurasan.", lat: 24.4672, lng: 39.6111, type: "travel" },
+          { year: 200, name: "Nishapur (Golden Chain)", desc: "Narrated the Hadith al-Silsila al-Dhahabiyya.", lat: 36.2133, lng: 58.7958, type: "life" },
+          { year: 201, name: "Heir-apparent", desc: "Declared crown prince in Marw.", lat: 37.6611, lng: 62.1869, type: "political" },
+          { year: 203, name: "Martyrdom", desc: "Died by poisoning in Tus.", lat: 36.2879, lng: 59.6158, type: "death" },
+          { year: 203, name: "Burial", desc: "Buried in Mashhad.", lat: 36.2879, lng: 59.6158, type: "shrine" }
+        ]
+      },
+      {
+        id: 9,
+        name: "Muhammad al-Jawad",
+        arabic: "محمد الجواد",
+        titles: "Al-Taqi",
+        lifespan: "195 – 220 AH",
+        period: [203, 220],
+        bio: "The Ninth Imam. Became Imam at a young age; known for public debates and integrity under Abbasid surveillance.",
+        events: [
+          { year: 195, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 203, name: "Imamate", desc: "Began Imamate after Imam Rida.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 204, name: "Debate in Baghdad", desc: "Public debate with Yahya ibn Aktham (reported) demonstrating knowledge.", lat: 33.3406, lng: 44.4003, type: "life" },
+          { year: 215, name: "Summoned to Baghdad", desc: "Summoned again; political pressure intensified.", lat: 33.3406, lng: 44.4003, type: "travel" },
+          { year: 220, name: "Martyrdom", desc: "Poisoned in Baghdad.", lat: 33.3406, lng: 44.4003, type: "death" },
+          { year: 220, name: "Burial", desc: "Buried in Kadhimiya.", lat: 33.3806, lng: 44.3403, type: "shrine" }
+        ]
+      },
+      {
+        id: 10,
+        name: "Ali al-Hadi",
+        arabic: "علي الهادي",
+        titles: "Al-Naqi",
+        lifespan: "212 – 254 AH",
+        period: [220, 254],
+        bio: "The Tenth Imam. Forced to Samarra and kept under surveillance; strengthened the network of representatives.",
+        events: [
+          { year: 212, name: "Birth", desc: "Born near Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 220, name: "Imamate", desc: "Began Imamate after Imam Jawad.", lat: 24.4672, lng: 39.6111, type: "life" },
+          { year: 233, name: "Exile to Samarra", desc: "Moved to Samarra by order of the Abbasid caliph.", lat: 34.1983, lng: 43.8742, type: "migration" },
+          { year: 240, name: "House arrest period", desc: "Long years of close surveillance; guidance via deputies.", lat: 34.1983, lng: 43.8742, type: "political" },
+          { year: 254, name: "Martyrdom", desc: "Poisoned in Samarra.", lat: 34.1983, lng: 43.8742, type: "death" },
+          { year: 254, name: "Burial", desc: "Buried in Samarra.", lat: 34.1983, lng: 43.8742, type: "shrine" }
+        ]
+      },
+      {
+        id: 11,
+        name: "Hasan al-Askari",
+        arabic: "الحسن العسكري",
+        titles: "Al-Askari",
+        lifespan: "232 – 260 AH",
+        period: [254, 260],
+        bio: "The Eleventh Imam. Lived in the military garrison of Samarra under surveillance and prepared the community for the Occultation.",
+        events: [
+          { year: 232, name: "Birth", desc: "Born in Medina.", lat: 24.4672, lng: 39.6111, type: "birth" },
+          { year: 254, name: "Imamate", desc: "Began Imamate after Imam Hadi.", lat: 34.1983, lng: 43.8742, type: "life" },
+          { year: 255, name: "Birth of Imam Mahdi", desc: "Birth of his son occurred under secrecy (reported in Samarra).", lat: 34.1983, lng: 43.8742, type: "life" },
+          { year: 260, name: "Martyrdom", desc: "Poisoned in Samarra.", lat: 34.1983, lng: 43.8742, type: "death" },
+          { year: 260, name: "Burial", desc: "Buried in Samarra.", lat: 34.1983, lng: 43.8742, type: "shrine" }
+        ]
+      },
+      {
+        id: 12,
+        name: "Muhammad al-Mahdi",
+        arabic: "محمد المهدي",
+        titles: "Sahib al-Zaman",
+        lifespan: "255 AH – Present",
+        period: [260, 330],
+        bio: "The Twelfth Imam. Entered Minor Occultation in 260 AH with communication through appointed deputies, then Major Occultation began in 329 AH.",
+        events: [
+          { year: 255, name: "Birth", desc: "Born in Samarra.", lat: 34.1983, lng: 43.8742, type: "birth" },
+          { year: 260, name: "Minor Occultation", desc: "Start of Ghaybat al-Sughra.", lat: 34.1983, lng: 43.8742, type: "political" },
+          { year: 260, name: "1st Deputy", desc: "Uthman ibn Sa'id begins deputyship (commonly associated with Baghdad/Samarra).", lat: 33.3406, lng: 44.4003, type: "life" },
+          { year: 265, name: "2nd Deputy", desc: "Muhammad ibn Uthman continues deputyship.", lat: 33.3406, lng: 44.4003, type: "life" },
+          { year: 305, name: "3rd Deputy", desc: "Husayn ibn Ruh al-Nawbakhti.", lat: 33.3406, lng: 44.4003, type: "life" },
+          { year: 326, name: "4th Deputy", desc: "Ali ibn Muhammad al-Samari.", lat: 33.3406, lng: 44.4003, type: "life" },
+          { year: 329, name: "Major Occultation", desc: "Start of Ghaybat al-Kubra.", lat: 33.3406, lng: 44.4003, type: "political" }
+        ]
+      }
+    ];
+
     let globe;
     let currentYear = 40;
     let selectedImamId = 1;
