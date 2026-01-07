@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shia Globe | The 12 Imams</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #050505;
+      --text-color: #f5f5f5;
+      --panel-bg: rgba(20, 20, 20, 0.94);
+      --panel-border: 1px solid rgba(255, 255, 255, 0.12);
+      --accent-color: #d4af37;
+      --secondary-text: #a0a0a0;
+      --font-main: 'Inter', sans-serif;
+      --font-arabic: 'Amiri', serif;
+
+      --col-battle: #ef4444;
+      --col-birth:  #22c55e;
+      --col-death:  #6b7280;
+      --col-shrine: #fbbf24;
+      --col-life:   #3b82f6;
+      --col-travel: #a855f7;
+    }
+
+    [data-theme="light"] {
+      --bg-color: #f0f2f5;
+      --text-color: #1a1a1a;
+      --panel-bg: rgba(255, 255, 255, 0.96);
+      --panel-border: 1px solid rgba(0, 0, 0, 0.12);
+      --accent-color: #b8860b;
+      --secondary-text: #555555;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* Top Bar */
+    .top-bar { position: absolute; top: 24px; left: 24px; z-index: 100; pointer-events: none; }
+    .brand { pointer-events: auto; margin-bottom: 16px; }
+    .brand h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; color: var(--text-color); }
+    .brand span { font-size: 13px; color: var(--secondary-text); }
+
+    .controls { pointer-events: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: var(--panel-border);
+      color: var(--text-color);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:hover { border-color: var(--accent-color); transform: translateY(-1px); }
+    .btn.active { border-color: var(--accent-color); color: var(--accent-color); background: rgba(212,175,55,0.1); }
+    .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; }
+
+    /* Search */
+    .search-modal {
+      position: fixed; top: 80px; left: 24px; width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: var(--panel-border);
+      border-radius: 12px;
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .search-modal.active { display: flex; }
+    .search-input {
+      width: 100%; padding: 12px; background: transparent; border: none; outline: none;
+      color: var(--text-color); border-bottom: var(--panel-border);
+    }
+    .search-results { max-height: 320px; overflow-y: auto; }
+    .result-item {
+      padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      transition: background 0.1s;
+    }
+    [data-theme="light"] .result-item { border-bottom-color: rgba(0,0,0,0.05); }
+    .result-item:hover { background: rgba(255,255,255,0.05); }
+    [data-theme="light"] .result-item:hover { background: rgba(0,0,0,0.05); }
+
+    /* Cluster Modal */
+    .cluster-modal {
+      position: absolute;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      border: var(--panel-border);
+      border-radius: 10px;
+      padding: 12px;
+      z-index: 300;
+      display: none;
+      min-width: 260px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .cluster-modal.active { display: block; }
+    .cluster-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--secondary-text); font-weight: 700;
+    }
+    .cluster-close {
+      background: none; border: none; color: var(--secondary-text);
+      cursor: pointer; font-size: 16px; line-height: 1;
+    }
+    .cluster-close:hover { color: var(--text-color); }
+    .cluster-item {
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.1s;
+    }
+    [data-theme="light"] .cluster-item { background: rgba(0,0,0,0.05); }
+    .cluster-item:hover {
+      background: rgba(212,175,55,0.15);
+      border-color: var(--accent-color);
+    }
+    .cluster-item-year { font-size: 10px; font-weight: 700; color: var(--accent-color); }
+    .cluster-item-name { font-size: 13px; font-weight: 600; margin-top: 2px; color: var(--text-color); }
+    .cluster-item-sub { font-size: 11px; color: var(--secondary-text); }
+
+    /* Side Panel */
+    .side-panel {
+      position: absolute; top: 24px; right: 24px; width: 420px; bottom: 100px;
+      background: var(--panel-bg); backdrop-filter: blur(20px);
+      border: var(--panel-border); border-radius: 12px;
+      transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 90; display: flex; flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .side-panel.active { transform: translateX(0); }
+
+    .panel-header { padding: 18px 20px; border-bottom: var(--panel-border); position: relative; }
+
+    .panel-nav {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    [data-theme="light"] .icon-btn {
+      border-color: rgba(0,0,0,0.12);
+      background: rgba(0,0,0,0.06);
+    }
+    .icon-btn:hover { border-color: var(--accent-color); transform: translateY(-1px); }
+    .icon-btn svg { width: 16px; height: 16px; stroke: currentColor; }
+
+    .close-btn {
+      position: absolute; top: 14px; right: 14px;
+      width: 32px; height: 32px; border-radius: 10px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      color: var(--secondary-text); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    [data-theme="light"] .close-btn { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.12); }
+    .close-btn:hover { border-color: var(--accent-color); color: var(--text-color); }
+
+    .imam-name { font-size: 22px; font-weight: 700; color: var(--accent-color); margin-bottom: 4px; padding-left: 74px; padding-right: 40px; }
+    .imam-arabic { font-family: var(--font-arabic); font-size: 24px; margin-bottom: 12px; line-height: 1.2; color: var(--text-color); padding-left: 74px; padding-right: 40px; }
+    .imam-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; color: var(--secondary-text); padding-left: 74px; padding-right: 40px; }
+    .meta-item strong {
+      color: var(--text-color);
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+
+    .panel-content { padding: 24px; overflow-y: auto; flex: 1; }
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--secondary-text); font-weight: 700; margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;
+    }
+    [data-theme="light"] .section-title { border-bottom-color: rgba(0,0,0,0.1); }
+
+    .bio-text { font-size: 14px; line-height: 1.6; margin-bottom: 24px; color: var(--text-color); }
+
+    .events-list { padding-left: 14px; border-left: 2px solid rgba(255,255,255,0.08); }
+    [data-theme="light"] .events-list { border-left-color: rgba(0,0,0,0.08); }
+
+    .event-node {
+      position: relative; margin-bottom: 22px; padding-left: 12px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .event-node:hover { padding-left: 16px; }
+    .event-node::before {
+      content: ''; position: absolute; left: -20px; top: 6px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--bg-color); border: 2px solid var(--secondary-text);
+      transition: all 0.2s;
+    }
+    .event-node:hover::before { border-color: var(--accent-color); background: var(--accent-color); }
+    .event-year { font-size: 12px; font-weight: 800; margin-bottom: 2px; color: var(--accent-color); }
+    .event-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text-color); }
+    .event-desc { font-size: 13px; color: var(--secondary-text); line-height: 1.4; }
+
+    /* Timeline */
+    .bottom-timeline {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, var(--bg-color) 0%, transparent 100%);
+      padding: 30px 40px; z-index: 80; display: flex; align-items: flex-end; gap: 30px;
+      pointer-events: none;
+    }
+    .bottom-timeline > * { pointer-events: auto; }
+    .year-display { min-width: 100px; text-align: left; }
+    .year-val { font-size: 36px; font-weight: 300; line-height: 1; color: var(--text-color); }
+    .year-sub { font-size: 12px; color: var(--secondary-text); margin-top: 4px; letter-spacing: 0.05em; }
+
+    input[type=range] { width: 100%; cursor: pointer; margin-bottom: 8px; }
+
+    /* Legend */
+    .legend {
+      position: absolute; bottom: 130px; left: 24px;
+      background: var(--panel-bg); backdrop-filter: blur(12px);
+      border: var(--panel-border); border-radius: 10px;
+      padding: 12px; z-index: 70;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+      pointer-events: none;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--secondary-text); }
+    .dot { width: 9px; height: 9px; border-radius: 50%; }
+
+    /* Map Points - improved z-index management */
+    .map-point {
+      width: 14px; height: 14px; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(255,255,255,0.9);
+      cursor: pointer; pointer-events: auto;
+      transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 1;
+    }
+    [data-theme="light"] .map-point { border-color: rgba(0,0,0,0.6); }
+    .map-point:hover { 
+      transform: translate(-50%, -50%) scale(1.5); 
+      z-index: 99999 !important;
+    }
+
+    .map-cluster {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent-color);
+      color: #000;
+      font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      transform: translate(-50%, -50%);
+      border: 2px solid #fff;
+      cursor: pointer; pointer-events: auto;
+      box-shadow: 0 0 15px rgba(212,175,55,0.6);
+      transition: transform 0.15s;
+      position: relative;
+      z-index: 1;
+    }
+    [data-theme="light"] .map-cluster { border-color: #000; }
+    .map-cluster:hover { 
+      transform: translate(-50%, -50%) scale(1.2); 
+      z-index: 99999 !important;
+    }
+
+    /* Tooltip - now positioned to always float above */
+    .point-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      background: rgba(10, 10, 10, 0.98);
+      color: #fff;
+      padding: 9px 13px;
+      border-radius: 7px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.2);
+      z-index: 100000;
+    }
+    [data-theme="light"] .point-tooltip {
+      background: rgba(255, 255, 255, 0.98);
+      color: #1a1a1a;
+      border-color: rgba(0,0,0,0.25);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .map-point:hover .point-tooltip,
+    .map-cluster:hover .point-tooltip { opacity: 1; }
+    .point-tooltip strong { display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px; }
+    .point-tooltip span { font-size: 11px; opacity: 0.85; }
+
+    @media (max-width: 860px) {
+      .side-panel { width: 100%; right: 0; bottom: 0; top: 30%; border-radius: 20px 20px 0 0; }
+      .legend { display: none; }
+      .imam-name, .imam-arabic, .imam-meta { padding-left: 64px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="brand">
+      <h1>Shia Globe</h1>
+      <span>The 12 Imams (23 BH–329 AH)</span>
+    </div>
+    <div class="controls">
+      <button class="btn" id="searchBtn" onclick="toggleSearch()">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg> Search
+      </button>
+      <button class="btn" id="rotateBtn" onclick="toggleRotation()">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg> Rotate
+      </button>
+      <button class="btn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg> Theme
+      </button>
+    </div>
+  </div>
+
+  <div class="search-modal" id="searchModal">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search for an Imam..." onkeyup="filterSearch()">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="cluster-modal" id="clusterModal">
+    <div class="cluster-header">
+      <span>Multiple Events Here</span>
+      <button class="cluster-close" onclick="closeCluster()">✕</button>
+    </div>
+    <div id="clusterContent"></div>
+  </div>
+
+  <!-- <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--col-birth)"></div> Birth</div>
+    <div class="legend-item"><div class="dot" style="background:var(--col-battle)"></div> Battle</div>
+    <div class="legend-item"><div class="dot" style="background:var(--col-life)"></div> Life/Pol</div>
+    <div class="legend-item"><div class="dot" style="background:var(--col-travel)"></div> Travel</div>
+    <div class="legend-item"><div class="dot" style="background:var(--col-death)"></div> Martyrdom</div>
+    <div class="legend-item"><div class="dot" style="background:var(--col-shrine)"></div> Shrine</div>
+  </div> -->
+
+  <div id="globeViz"></div>
+
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <div class="panel-nav">
+        <button class="icon-btn" title="Previous Imam" onclick="prevImam()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <button class="icon-btn" title="Next Imam" onclick="nextImam()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+      <button class="close-btn" onclick="closePanel()">✕</button>
+      <div id="panelHeaderContent"></div>
+    </div>
+    <div class="panel-content" id="panelBodyContent"></div>
+  </div>
+
+  <div class="bottom-timeline">
+    <div class="year-display">
+      <div class="year-val" id="yearVal">40</div>
+      <div class="year-sub">AH (After Hijrah)</div>
+    </div>
+    <div style="flex:1">
+      <input type="range" id="timeSlider" min="-23" max="330" value="40" step="1">
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--secondary-text); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px;">
+        <span>Birth of Ali (-23)</span>
+        <span>Occultation (329)</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script>
+    const colors = {
+      birth: '#22c55e',
+      battle: '#ef4444',
+      life: '#3b82f6',
+      political: '#3b82f6',
+      migration: '#a855f7',
+      travel: '#a855f7',
+      death: '#6b7280',
+      shrine: '#fbbf24'
+    };
+
+    let globe;
+    let currentYear = 40;
+    let selectedImamId = 1;
+    let rotationActive = false;
+
+    function init() {
+      globe = Globe()(document.getElementById('globeViz'))
+        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+        .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+        .backgroundColor('#050505')
+        .atmosphereColor('#4a90e2')
+        .atmosphereAltitude(0.15)
+        .htmlElementsData([])
+        .htmlLat(d => d.lat)
+        .htmlLng(d => d.lng)
+        .htmlAltitude(0.01)
+        .htmlElement(d => createPointEl(d));
+
+      globe.controls().autoRotate = false;
+      globe.controls().autoRotateSpeed = 0.5;
+      globe.controls().enableZoom = true;
+      globe.pointOfView({ lat: 26, lng: 44, altitude: 2 });
+
+      document.getElementById('timeSlider').addEventListener('input', (e) => {
+        currentYear = parseInt(e.target.value);
+        updateDisplay(); // This now updates even when panel is open
+      });
+
+      updateRotationBtn();
+      selectImam(1);
+
+      window.jumpTo = jumpTo;
+      window.closePanel = closePanel;
+      window.toggleSearch = toggleSearch;
+      window.filterSearch = filterSearch;
+      window.toggleRotation = toggleRotation;
+      window.toggleTheme = toggleTheme;
+      window.closeCluster = closeCluster;
+      window.nextImam = nextImam;
+      window.prevImam = prevImam;
+    }
+
+    function createPointEl(d) {
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+
+      const point = document.createElement('div');
+      const tooltip = document.createElement('div');
+      tooltip.className = 'point-tooltip';
+
+      if (d.isCluster) {
+        point.className = 'map-cluster';
+        point.textContent = d.count;
+        tooltip.innerHTML = `<strong>${d.count} events</strong><span>Click to view</span>`;
+      } else {
+        point.className = 'map-point';
+        point.style.backgroundColor = colors[d.type] || '#fff';
+        tooltip.innerHTML = `<strong>${d.name}</strong><span>${d.imamName} • ${d.year} AH</span>`;
+      }
+
+      point.appendChild(tooltip);
+      wrapper.appendChild(point);
+
+      point.onclick = (e) => {
+        e.stopPropagation();
+        if (d.isCluster) {
+          openClusterModal(d.events, e.clientX, e.clientY);
+        } else {
+          const imam = imamsData.find(i => i.id === d.imamId);
+          selectImam(imam.id, d);
+        }
+      };
+
+      return wrapper;
+    }
+
+    function getVisiblePoints() {
+      let visible = [];
+
+      if (selectedImamId) {
+        const imam = imamsData.find(i => i.id === selectedImamId);
+        imam.events.forEach(ev => {
+          if (ev.year <= currentYear) visible.push({ ...ev, imamId: imam.id, imamName: imam.name });
+        });
+      } else {
+        imamsData.forEach(imam => {
+          const isActive = currentYear >= imam.period[0] && currentYear <= imam.period[1];
+
+          if (isActive) {
+            let latest = null;
+            imam.events.forEach(ev => {
+              if (ev.year <= currentYear) {
+                if (!latest || ev.year > latest.year) latest = ev;
+              }
+            });
+            if (latest) visible.push({ ...latest, imamId: imam.id, imamName: imam.name });
+          }
+
+          if (!visible.length) {
+            imam.events.forEach(ev => {
+              if (ev.year === currentYear) visible.push({ ...ev, imamId: imam.id, imamName: imam.name });
+            });
+          }
+        });
+
+        if (!visible.length) {
+          const ali = imamsData[0];
+          visible.push({ ...ali.events[0], imamId: ali.id, imamName: ali.name });
+        }
+      }
+
+      const threshold = 0.5;
+      const clusters = [];
+      const used = new Set();
+
+      for (let i = 0; i < visible.length; i++) {
+        if (used.has(i)) continue;
+        const group = [visible[i]];
+        used.add(i);
+
+        for (let j = i + 1; j < visible.length; j++) {
+          if (used.has(j)) continue;
+          const dist = Math.sqrt(
+            Math.pow(visible[i].lat - visible[j].lat, 2) +
+            Math.pow(visible[i].lng - visible[j].lng, 2)
+          );
+          if (dist < threshold) {
+            group.push(visible[j]);
+            used.add(j);
+          }
+        }
+
+        if (group.length > 1) {
+          clusters.push({
+            lat: group[0].lat,
+            lng: group[0].lng,
+            isCluster: true,
+            count: group.length,
+            events: group
+          });
+        } else {
+          clusters.push(group[0]);
+        }
+      }
+
+      return clusters;
+    }
+
+    function updateDisplay() {
+      document.getElementById('yearVal').innerText = currentYear;
+      document.getElementById('timeSlider').value = currentYear;
+      // Always update globe regardless of panel state
+      globe.htmlElementsData(getVisiblePoints());
+    }
+
+    function openClusterModal(events, x, y) {
+      const modal = document.getElementById('clusterModal');
+      const content = document.getElementById('clusterContent');
+      content.innerHTML = '';
+
+      events.slice().sort((a,b) => (a.year - b.year) || (a.imamId - b.imamId)).forEach(ev => {
+        const item = document.createElement('div');
+        item.className = 'cluster-item';
+        item.innerHTML = `
+          <div class="cluster-item-year">${ev.year} AH</div>
+          <div class="cluster-item-name">${ev.name}</div>
+          <div class="cluster-item-sub">${ev.imamName}</div>
+        `;
+        item.onclick = () => {
+          const imam = imamsData.find(i => i.id === ev.imamId);
+          selectImam(imam.id, ev);
+          closeCluster();
+        };
+        content.appendChild(item);
+      });
+
+      let left = x + 20;
+      let top = y - 20;
+      if (left + 280 > window.innerWidth) left = x - 300;
+      if (top + 300 > window.innerHeight) top = window.innerHeight - 320;
+
+      modal.style.left = left + 'px';
+      modal.style.top = top + 'px';
+      modal.classList.add('active');
+    }
+
+    function closeCluster() {
+      document.getElementById('clusterModal').classList.remove('active');
+    }
+
+    function renderPanel(imam) {
+      document.getElementById('panelHeaderContent').innerHTML = `
+        <div class="imam-name">${imam.name}</div>
+        <div class="imam-arabic">${imam.arabic}</div>
+        <div class="imam-meta">
+          <div class="meta-item"><strong>Title</strong> ${imam.titles}</div>
+          <div class="meta-item"><strong>Period</strong> ${imam.lifespan}</div>
+        </div>
+      `;
+
+      document.getElementById('panelBodyContent').innerHTML = `
+        <div class="section-title">Biography</div>
+        <div class="bio-text">${imam.bio}</div>
+        <div class="section-title">Historical Events</div>
+        <div class="events-list">
+          ${imam.events.map(ev => `
+            <div class="event-node" onclick="jumpTo(${ev.year}, ${ev.lat}, ${ev.lng})">
+              <div class="event-year">${ev.year} AH</div>
+              <div class="event-title">${ev.name}</div>
+              <div class="event-desc">${ev.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      document.getElementById('sidePanel').classList.add('active');
+    }
+
+    function selectImam(id, point = null) {
+      selectedImamId = id;
+      const imam = imamsData.find(i => i.id === id);
+      if (!imam) return;
+
+      renderPanel(imam);
+
+      if (point) {
+        if (currentYear < point.year) currentYear = point.year;
+        updateDisplay();
+        globe.pointOfView({ lat: point.lat, lng: point.lng, altitude: 1.2 }, 1000);
+      } else {
+        currentYear = Math.min(imam.period[1], 330);
+        updateDisplay();
+        globe.pointOfView({ lat: 24.4672, lng: 39.6111, altitude: 2 }, 1000);
+      }
+    }
+
+    function nextImam() {
+      if (!selectedImamId) { selectImam(1); return; }
+      const nextId = selectedImamId === 12 ? 1 : (selectedImamId + 1);
+      selectImam(nextId);
+    }
+
+    function prevImam() {
+      if (!selectedImamId) { selectImam(12); return; }
+      const prevId = selectedImamId === 1 ? 12 : (selectedImamId - 1);
+      selectImam(prevId);
+    }
+
+    function jumpTo(year, lat, lng) {
+      currentYear = year;
+      updateDisplay();
+      globe.pointOfView({ lat: lat, lng: lng, altitude: 1.0 }, 1000);
+    }
+
+    function closePanel() {
+      document.getElementById('sidePanel').classList.remove('active');
+      selectedImamId = null;
+      updateDisplay();
+    }
+
+    function toggleSearch() {
+      const modal = document.getElementById('searchModal');
+      const btn = document.getElementById('searchBtn');
+      modal.classList.toggle('active');
+      btn.classList.toggle('active');
+      if (modal.classList.contains('active')) {
+        document.getElementById('searchInput').focus();
+        filterSearch();
+      }
+    }
+
+    function filterSearch() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const res = document.getElementById('searchResults');
+      res.innerHTML = '';
+
+      imamsData
+        .filter(i => i.name.toLowerCase().includes(q) || i.arabic.includes(q))
+        .forEach(i => {
+          const div = document.createElement('div');
+          div.className = 'result-item';
+          div.innerHTML = `
+            <div style="width:24px;height:24px;background:rgba(255,255,255,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--accent-color);font-weight:700">${i.id}</div>
+            <div>
+              <div style="font-weight:600;color:var(--text-color)">${i.name}</div>
+              <div style="font-size:11px;color:var(--secondary-text)">${i.arabic}</div>
+            </div>
+          `;
+          div.onclick = () => { selectImam(i.id); toggleSearch(); };
+          res.appendChild(div);
+        });
+    }
+
+    function toggleRotation() {
+      rotationActive = !rotationActive;
+      globe.controls().autoRotate = rotationActive;
+      updateRotationBtn();
+    }
+
+    function updateRotationBtn() {
+      document.getElementById('rotateBtn').classList.toggle('active', rotationActive);
+    }
+
+    function toggleTheme() {
+      const isLight = document.body.getAttribute('data-theme') === 'light';
+      document.body.setAttribute('data-theme', isLight ? 'dark' : 'light');
+
+      if (!isLight) {
+        globe.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-day.jpg')
+          .backgroundColor('#f0f2f5')
+          .atmosphereColor('#ffffff');
+      } else {
+        globe.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+          .backgroundColor('#050505')
+          .atmosphereColor('#4a90e2');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#clusterModal') && !e.target.closest('.map-cluster')) {
+        closeCluster();
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
