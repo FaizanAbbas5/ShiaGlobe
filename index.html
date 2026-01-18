@@ -327,9 +327,112 @@
     .point-tooltip span { font-size: 11px; opacity: 0.85; }
 
     @media (max-width: 860px) {
-      .side-panel { width: 100%; right: 0; bottom: 0; top: 30%; border-radius: 20px 20px 0 0; }
+      .top-bar { left: 12px; top: 12px; right: 12px; }
+      .brand h1 { font-size: 18px; }
+      .brand span { font-size: 12px; }
+      .controls { gap: 6px; }
+      .btn { padding: 7px 10px; font-size: 12px; }
+      
+      .search-modal { 
+        left: 12px; 
+        right: 12px; 
+        top: 100px; 
+        width: auto; 
+      }
+      
+      .side-panel { 
+        width: 100%; 
+        right: 0; 
+        left: 0;
+        bottom: 0; 
+        top: 35%; 
+        border-radius: 20px 20px 0 0;
+        max-height: 65vh;
+      }
+      
+      .panel-header { padding: 16px; }
+      .panel-nav { left: 12px; top: 12px; }
+      .close-btn { right: 12px; top: 12px; }
+      
+      .imam-name { 
+        font-size: 19px; 
+        padding-left: 90px; 
+        padding-right: 50px; 
+      }
+      .imam-arabic { 
+        font-size: 20px; 
+        padding-left: 90px; 
+        padding-right: 50px; 
+      }
+      .imam-meta { 
+        padding-left: 90px; 
+        padding-right: 50px;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      
+      .panel-content { padding: 16px; }
+      .section-title { font-size: 10px; }
+      .bio-text { font-size: 13px; }
+      .event-title { font-size: 14px; }
+      .event-desc { font-size: 12px; }
+      
       .legend { display: none; }
-      .imam-name, .imam-arabic, .imam-meta { padding-left: 64px; }
+      
+      .bottom-timeline { 
+        padding: 20px 12px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+      
+      .year-display { 
+        min-width: auto;
+        text-align: center;
+      }
+      
+      .year-val { font-size: 28px; }
+      .year-sub { font-size: 11px; }
+      
+      .cluster-modal {
+        left: 12px !important;
+        right: 12px !important;
+        top: 50% !important;
+        transform: translateY(-50%);
+        min-width: auto;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+      
+      .map-point { width: 12px; height: 12px; }
+      .map-cluster { width: 20px; height: 20px; font-size: 10px; }
+    }
+    
+    @media (max-width: 480px) {
+      .top-bar { left: 8px; top: 8px; right: 8px; }
+      .brand { margin-bottom: 10px; }
+      .brand h1 { font-size: 16px; }
+      .brand span { font-size: 11px; }
+      
+      .controls { 
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .btn { 
+        padding: 6px 8px; 
+        font-size: 11px;
+        flex: 0 0 auto;
+      }
+      .btn svg { width: 12px; height: 12px; }
+      
+      .side-panel { top: 40%; max-height: 60vh; }
+      
+      .imam-name { font-size: 17px; }
+      .imam-arabic { font-size: 18px; }
+      
+      .year-val { font-size: 24px; }
+      
+      .bottom-timeline { padding: 16px 8px; }
     }
   </style>
 </head>
