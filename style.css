@@ -268,7 +268,8 @@ body {
     font-size: 0.7rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: var(--gold-primary);
+    /* color: var(--gold-primary); */
+    color: #EFBF04;
     margin-bottom: 24px;
     font-weight: 600;
 }
