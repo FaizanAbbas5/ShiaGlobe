@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/landing-style.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -25,7 +25,7 @@
  
     <!-- Hero Section - Full Screen Globe -->
     <section class="hero">
-        <!-- Massive Globe Background -->
+        <!-- Globe Background -->
         <div class="globe-container">
             <img src="https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=2400" alt="Earth Globe">
             <!-- Animated Markers -->
@@ -167,24 +167,7 @@
     </footer>
  
     <!-- JavaScript -->
-    <script>
-        // Navbar scroll effect
-        window.addEventListener('scroll', () => {
-            const navbar = document.getElementById('navbar');
-            if (window.scrollY > 100) {
-                navbar.classList.remove('transparent');
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-                navbar.classList.add('transparent');
-            }
-        });
- 
-        // Form submission
-        document.getElementById('emailForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('Currently under development, use the email icon below');
-        });
-    </script>
+    
+    <script src="./assets/js/landing.js"></script>
 </body>
 </html>
