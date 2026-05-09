@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Journey to Karbala | Tārīkh al-Shi'a</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="assets/css/karbala-styles.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <a href="index.html" class="brand-back">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Back to Tārīkh al-Shi'a
+      </a>
+      <h1>The Journey to <span>Karbala</span></h1>
+      <div class="brand-sub">61 AH · From Medina to Karbala</div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="routeToggleBtn" onclick="toggleRoute()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
+        Show Route
+      </button>
+      <button class="btn" id="themeBtn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Theme
+      </button>
+      <button class="btn" onclick="fitJourney()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        Fit View
+      </button>
+      <button class="btn zoom-btn" onclick="map && map.zoomIn()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="btn zoom-btn" onclick="map && map.zoomOut()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="mapContainer">
+    <div id="map"></div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <div class="panel-header-top">
+        <div class="panel-nav">
+          <button class="icon-btn" onclick="prevStop()" title="Previous Stop">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="icon-btn" onclick="nextStop()" title="Next Stop">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="panel-header-right">
+          <div id="panelTypeBadge"></div>
+          <button class="close-btn" onclick="closePanel()">✕</button>
+        </div>
+      </div>
+      <div id="panelHeader"></div>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+  </div>
+
+  <!-- Journey Progress Bar -->
+  <div class="journey-progress">
+    <div class="progress-inner">
+      <div class="progress-header">
+        <div class="progress-title">Journey of Imam Hussain (AS) · Muharram 61 AH</div>
+        <div class="progress-count"><strong id="progressCurrent">—</strong> / <strong id="progressTotal">—</strong> stops</div>
+      </div>
+      <div class="stops-track" id="stopsTrack"></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-title">Marker Type</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--departure)"></div> Departure</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--waypoint)"></div> Waypoint / Camp</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--event)"></div> Major Event</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--arrival)"></div> Karbala (Arrival)</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="assets/js/karbala.js"></script>
+</body>
+</html>
