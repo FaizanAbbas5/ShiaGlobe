@@ -2,94 +2,140 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>The Journey to Karbala | Tārīkh al-Shi'a</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="assets/css/karbala-styles.css">
+  <meta name="description" content="A narrated 3D story of the journey of Imam Hussain (AS) from Medina to Karbala in 60–61 AH, and of the captives' journey to Kufa and Damascus." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;1,400&display=swap">
+  <link rel="stylesheet" href="assets/css/karbala-styles.css" />
 </head>
 <body>
+<div id="app">
+  <canvas id="gl" role="img" aria-label="3D scenes from the journey of Imam Hussain to Karbala"></canvas>
+  <div class="vignette"></div>
+  <div class="letterbox top"></div><div class="letterbox bottom"></div>
 
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="brand">
-      <a href="index.html" class="brand-back">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Back to Tārīkh al-Shi'a
-      </a>
-      <h1>The Journey to <span>Karbala</span></h1>
-      <div class="brand-sub">61 AH · From Medina to Karbala</div>
-    </div>
+  <header class="topbar">
+    <div class="brand"><strong>Journey to Karbala</strong><a class="sub" href="index.html" title="Back to Tārīkh al-Shiʿa">← Tārīkh al-Shiʿa</a><span class="tag">3D story</span></div>
     <div class="controls">
-      <button class="btn" id="routeToggleBtn" onclick="toggleRoute()">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>
-        Show Route
-      </button>
-      <button class="btn" id="themeBtn" onclick="toggleTheme()">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        Theme
-      </button>
-      <button class="btn" onclick="fitJourney()">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        Fit View
-      </button>
-      <button class="btn zoom-btn" onclick="map && map.zoomIn()">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <button class="btn zoom-btn" onclick="map && map.zoomOut()">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
+      <button class="pill" id="autoBtn" type="button" aria-pressed="true" title="Play the story automatically"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg><span class="lbl">Autoplay</span></button>
+      <button class="pill" id="narrBtn" type="button" aria-pressed="false" title="Narration: the story read aloud" hidden><svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3v5H5a1 1 0 0 1-1-1z"/><path d="M20 15h-3v5h2a1 1 0 0 0 1-1z"/></svg><span class="lbl">Narration</span></button>
+      <button class="pill" id="soundBtn" type="button" aria-pressed="false" title="Background sound"><svg viewBox="0 0 24 24"><path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg><span class="lbl">Sound</span></button>
     </div>
+  </header>
+
+  <div class="stamp" id="stamp" hidden>
+    <div class="chapter" id="chapterLabel"></div>
+    <div class="date" id="dateLabel"></div>
+    <div class="stat" id="statLabel"></div>
   </div>
 
-  <!-- Map -->
-  <div id="mapContainer">
-    <div id="map"></div>
-  </div>
+  <div class="minimap" id="minimap" hidden><div class="mm-label">Where we are</div><svg id="miniSvg" viewBox="-6 -6 412 432" aria-hidden="true"></svg></div>
 
-  <!-- Side Panel -->
-  <div class="side-panel" id="sidePanel">
-    <div class="panel-header">
-      <div class="panel-header-top">
-        <div class="panel-nav">
-          <button class="icon-btn" onclick="prevStop()" title="Previous Stop">
-            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <button class="icon-btn" onclick="nextStop()" title="Next Stop">
-            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div class="panel-header-right">
-          <div id="panelTypeBadge"></div>
-          <button class="close-btn" onclick="closePanel()">✕</button>
-        </div>
+  <section class="card" id="card" aria-live="polite" hidden>
+    <div class="card-head">
+      <div class="place"><span id="placeEn"></span><span class="ar" id="placeAr" lang="ar" dir="rtl"></span></div>
+      <button class="icon-btn" id="hideBtn" type="button" aria-label="Hide the story text" title="Hide text (H)"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+    <h2 id="beatTitle"></h2>
+    <p class="short" id="shortText"></p>
+    <div class="more" id="more"><div class="more-inner">
+      <p class="narr" id="narr"></p>
+      <p class="quote" id="quote" hidden></p>
+      <div class="people" id="people"></div>
+      <div class="reflect" id="reflect" hidden><b>Think about it</b><span id="reflectText"></span></div>
+      <p class="note" id="note" hidden></p>
+    </div></div>
+    <div class="card-foot">
+      <button class="link-btn" id="moreBtn" type="button" aria-expanded="false" aria-controls="more"><span id="moreLbl">Read more</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="nav">
+        <button class="btn icon" id="backBtn" type="button" aria-label="Previous scene" title="Previous scene">←</button>
+        <button class="btn primary" id="nextBtn" type="button">Continue →</button>
       </div>
-      <div id="panelHeader"></div>
     </div>
-    <div class="panel-body" id="panelBody"></div>
+  </section>
+  <div class="story-pill" id="storyPill" hidden>
+    <button class="pill-show" id="showBtn" type="button" aria-label="Show the story text"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="pillTitle"></span><span class="pill-hint">Show text</span></button>
+    <button class="btn primary" id="pillNext" type="button">Continue →</button>
   </div>
 
-  <!-- Journey Progress Bar -->
-  <div class="journey-progress">
-    <div class="progress-inner">
-      <div class="progress-header">
-        <div class="progress-title">Journey of Imam Hussain (AS) · Muharram 61 AH</div>
-        <div class="progress-count"><strong id="progressCurrent">—</strong> / <strong id="progressTotal">—</strong> stops</div>
+  <div class="caption" id="caption" hidden><div class="cap-title" id="capTitle"></div><p class="cap-text" id="capText"></p></div>
+  <div class="ctrl" id="ctrl" hidden>
+    <button class="pill-show" id="capMore" type="button" aria-label="Read the full text"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Read more</button>
+    <button class="btn icon" id="capBack" type="button" aria-label="Previous scene" title="Previous scene">←</button>
+    <button class="btn primary" id="capNext" type="button">Continue →</button>
+  </div>
+
+  <nav class="timeline" id="timeline" aria-label="Scenes" hidden></nav>
+
+  <div class="fade" id="fade"></div>
+  <div class="mapcard" id="mapcard" aria-hidden="true">
+    <svg id="bigSvg" viewBox="-6 -6 412 432" aria-hidden="true"></svg>
+    <div class="mc-text">
+      <div class="eyebrow" id="mcCh"></div>
+      <div class="mc-place" id="mcPlace"></div>
+      <div class="mc-ar ar" id="mcAr" lang="ar" dir="rtl"></div>
+      <div class="mc-date" id="mcDate"></div>
+      <div class="mc-km" id="mcKm"></div>
+    </div>
+  </div>
+
+  <div class="labels" id="labels" aria-hidden="true"></div>
+  <div class="roll" id="roll" hidden aria-live="polite"></div>
+  <div class="pron" id="pron" hidden role="dialog" aria-modal="true" aria-labelledby="pronTitle">
+    <div class="pron-inner">
+      <div class="pron-head"><h3 id="pronTitle">How names are pronounced</h3><button class="icon-btn" id="pronClose" type="button" aria-label="Close">✕</button></div>
+      <p class="pron-note">Voice: <b id="pronVoice"></b>. Tap a spelling to hear it; the one you tap is used from then on (British and American voices are kept separately). Choices are saved in this browser.</p>
+      <div class="pron-list" id="pronList"></div>
+      <div class="pron-foot"><button class="btn" id="pronCopy" type="button">Copy my choices</button><span class="pron-copied" id="pronCopied"></span></div>
+      <textarea id="pronOut" readonly rows="2" aria-label="Your pronunciation choices"></textarea>
+    </div>
+  </div>
+  <div class="sermon" id="sermon" hidden aria-live="polite"></div>
+
+  <div class="overlay intro" id="intro">
+    <div class="intro-inner">
+      <div class="eyebrow">Tārīkh al-Shiʿa · Story mode in 3D</div>
+      <h1>The Journey to Karbala</h1>
+      <div class="ar-title ar" lang="ar" dir="rtl">الطريق إلى كربلاء</div>
+      <p class="lede">Ride with the caravan of Imam Hussain (AS), from Medina to Karbala in 60–61 AH.</p>
+      <div class="aud-label" id="narrLabel" hidden>Listen or read?</div>
+      <div class="narr-row" id="narrRow" hidden>
+        <button class="aud" id="narrIntroBtn" type="button" aria-pressed="false"><b>Narration <span id="narrState">Off</span></b><span>The story is read aloud as you watch</span></button>
+        <div class="voice"><span>Voice</span><div class="voice-row"><select id="voiceSel" aria-label="Narrator voice"></select><button class="sample" id="voiceTry" type="button" title="Hear how this voice says the names">▶ Sample</button></div></div>
       </div>
-      <div class="stops-track" id="stopsTrack"></div>
+      <button class="link-btn pron-link" id="pronBtn" type="button" hidden>Does a name sound wrong? Fix pronunciation</button>
+      <p class="narr-hint" id="narrHint" hidden>This browser only offers a basic, robotic-sounding voice. For a natural narrator, open the page in Microsoft Edge, or add an enhanced English voice in your device's speech settings.</p>
+      <button class="btn primary begin" id="beginBtn" type="button" disabled>Begin the journey →</button>
+      <div class="loading" id="loading"><span class="spinner"></span><span id="loadMsg">Preparing the scenes…</span></div>
+      <p class="hint">All seven chapters, about 20 minutes with narration. Use Continue or the ← → keys; press H to hide the text and just watch.</p>
     </div>
   </div>
 
-  <!-- Legend -->
-  <div class="legend">
-    <div class="legend-title">Marker Type</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--departure)"></div> Departure</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--waypoint)"></div> Waypoint / Camp</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--event)"></div> Major Event</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--arrival)"></div> Karbala (Arrival)</div>
+  <div class="overlay outro gone" id="outro" aria-hidden="true">
+    <div class="outro-inner">
+      <div class="eyebrow">The end of the journey</div>
+      <h2>Seven chapters, one journey</h2>
+      <p class="lede">From Medina to Karbala, and on to Kufa and Damascus. Imam Hussain (AS) refused to lend his name to injustice, and Sayyida Zaynab (SA) made sure the world would remember why.</p>
+      <div class="next">
+        <div><b>Think about it</b><p>What would you have done on the last night, when the lamps were put out and anyone could leave?</p></div>
+        <div><b>Keep exploring</b><p>Every stop on this road is on the Shia Globe map, with its dates, people and sources.</p></div>
+      </div>
+      <div class="nav">
+        <button class="btn" id="lastBtn" type="button">← Back to the last scene</button>
+        <button class="btn primary" id="replayBtn" type="button">Replay from the start</button>
+      </div>
+      <p class="credits">3D models: camels by Poly by Google (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC-BY 3.0</a>); horses, rider figure and palm trees by Quaternius, rocks by Quaternius and Kenney, fire pit by CircuitZ (all CC0); all via Poly Pizza. Tents, saddles, banner, howdahs and scenery built for this prototype.</p>
+    </div>
   </div>
+</div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="assets/js/karbala.js"></script>
+<!-- 3D models and map outlines (loaded before the app) -->
+<script src="assets/js/karbala-assets.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+</script>
+<script type="module" src="assets/js/karbala.js"></script>
 </body>
 </html>
