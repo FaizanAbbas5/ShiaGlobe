@@ -11,8 +11,6 @@ async function loadScholarsData() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         imamsData = await response.json();
-        console.log('Loaded ' + imamsData.length + ' scholars');
-        console.log('First scholar:', imamsData[0]);
         return true;
     } catch (error) {
         console.error('Error loading data:', error);
@@ -40,8 +38,6 @@ const colors = {
     let rotationActive = false;
 
     async function init() {
-      console.log('Initializing globe...');
-      
       // wait for data to load
       const loaded = await loadScholarsData();
       if (!loaded) {
@@ -83,8 +79,29 @@ const colors = {
       window.closeCluster = closeCluster;
       window.nextImam = nextImam;
       window.prevImam = prevImam;
-      
-      console.log('Globe initialized successfully');
+      window.toggleSheet = toggleSheet;
+
+      // phones: the name in the panel header opens and closes the sheet too
+      document.getElementById('panelHeaderContent').addEventListener('click', () => { if (isSheet()) toggleSheet(); });
+
+      // keep the globe filling the window when it is resized or a phone is turned
+      window.addEventListener('resize', () => globe.width(window.innerWidth).height(window.innerHeight));
+
+      // the panel sits on the timeline bar on phones, so the stylesheet needs the bar's height
+      const timeline = document.querySelector('.bottom-timeline');
+      new ResizeObserver(() => document.documentElement.style.setProperty('--tl-h', timeline.offsetHeight + 'px')).observe(timeline);
+    }
+
+    // on an upright phone the panel is a sheet: it opens as a strip with the name, and expands for the rest
+    const sheetQuery = window.matchMedia('(max-width: 860px) and (min-height: 501px)');
+    function isSheet() { return sheetQuery.matches; }
+
+    function toggleSheet(open) {
+      const panel = document.getElementById('sidePanel');
+      const expanded = panel.classList.toggle('expanded', open);
+      const handle = document.getElementById('sheetHandle');
+      handle.setAttribute('aria-expanded', expanded);
+      handle.setAttribute('aria-label', expanded ? 'Hide biography and events' : 'Show biography and events');
     }
 
     function createPointEl(d) {
@@ -194,7 +211,6 @@ const colors = {
         }
       }
 
-      console.log('Visible points:', clusters.length);
       return clusters;
     }
 
@@ -300,6 +316,7 @@ const colors = {
     }
 
     function jumpTo(year, lat, lng) {
+      if (isSheet()) toggleSheet(false); // fold the sheet so the globe can be seen moving there
       currentYear = year;
       updateDisplay();
       globe.pointOfView({ lat: lat, lng: lng, altitude: 1.0 }, 1000);
@@ -307,6 +324,7 @@ const colors = {
 
     function closePanel() {
       document.getElementById('sidePanel').classList.remove('active');
+      toggleSheet(false);
       selectedImamId = null;
       updateDisplay();
     }

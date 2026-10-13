@@ -1,0 +1,1696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A Kumayl &amp; Fizza picture book for the 15th of Sha&#x27;ban. Fizza wants to give the hidden Imam a birthday present. But how do you wrap a kindness?">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tārīkh al-Shi'a">
+<meta property="og:title" content="How Do You Wrap a Kindness?">
+<meta property="og:description" content="A Kumayl &amp; Fizza picture book for the 15th of Sha&#x27;ban. Fizza wants to give the hidden Imam a birthday present. But how do you wrap a kindness?">
+<meta property="og:url" content="https://faizanabbas5.github.io/ShiaGlobe/wrap-a-kindness/">
+<meta property="og:image" content="https://faizanabbas5.github.io/ShiaGlobe/assets/img/stories/wrap-a-kindness.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+</head>
+<body>
+<title>How Do You Wrap a Kindness?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Andika:wght@400;700&family=Baloo+2:wght@600;700;800&display=swap">
+<style>
+/* The book reader shared by the Kumayl & Fizza books. Each book supplies PAGES and its art (the BOOK script slot).
+   Layout: nothing but the book on a lilac cloth. It starts closed on its front cover, opens to two facing pages
+   that turn over at the spine, and shows one page at a time where two would be too small to read. */
+:root {
+  --cloth: #d9d3e6; --cloth-deep: #c7bedb; --muted: #5b5370; --edge: #ebe2d1; --edge-deep: #c8bba5;
+  --shadow: rgba(38, 24, 66, .34); --focus: #2f62d0;
+  --read: 'Andika', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --cloth: #1d1a34; --cloth-deep: #15122a; --muted: #aaa2c6; --edge: #ddd3c1; --edge-deep: #a99c86;
+    --shadow: rgba(0, 0, 0, .6); --focus: #9fc1ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --cloth: #1d1a34; --cloth-deep: #15122a; --muted: #aaa2c6; --edge: #ddd3c1; --edge-deep: #a99c86;
+  --shadow: rgba(0, 0, 0, .6); --focus: #9fc1ff; color-scheme: dark; }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: radial-gradient(ellipse at 50% 45%, var(--cloth), var(--cloth-deep) 95%); background-color: var(--cloth); color: var(--muted); font-family: var(--read); }
+.app { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding-block: 20px; padding-inline: 16px; }
+
+/* the book */
+.stage { position: relative; width: 100%; display: flex; justify-content: center; overflow-x: clip; }
+.book { position: relative; width: var(--bookw); height: var(--ph); perspective: calc(var(--pw) * 6); }
+.book.closed { transform: translateX(-25%); }
+.slot { position: absolute; top: 0; width: var(--pw); height: 100%; cursor: pointer; }
+.slot.empty { visibility: hidden; }
+.slot.l { left: 0; box-shadow: -1px 1px 0 var(--edge), -3px 2px 0 var(--edge-deep), -4px 3px 0 var(--edge), -6px 4px 0 var(--edge-deep), 0 22px 40px -14px var(--shadow); }
+.slot.r { right: 0; box-shadow: 1px 1px 0 var(--edge), 3px 2px 0 var(--edge-deep), 4px 3px 0 var(--edge), 6px 4px 0 var(--edge-deep), 0 22px 40px -14px var(--shadow); }
+/* the fold at the spine: each page darkens a little towards it (sL: the spine is on the page's left, sR: on its right) */
+.fold { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.fold.sL { background: linear-gradient(to right, rgba(28, 16, 40, .34), rgba(28, 16, 40, .1) 2.5%, rgba(255, 255, 255, .06) 5%, transparent 9%); }
+.fold.sR { background: linear-gradient(to left, rgba(28, 16, 40, .34), rgba(28, 16, 40, .1) 2.5%, rgba(255, 255, 255, .06) 5%, transparent 9%); }
+/* closed, the front cover shows the hinge of the binding; one page at a time, just a faint edge */
+.book.closed .slot.r .fold { background: linear-gradient(to right, rgba(0, 0, 0, .38), rgba(255, 255, 255, .14) 1.1%, rgba(0, 0, 0, .12) 2.2%, transparent 3.5%); }
+.book.single .fold.sL { background: linear-gradient(to right, rgba(28, 16, 40, .22), transparent 3%); }
+/* a page while it turns */
+.leaf { position: absolute; top: 0; width: var(--pw); height: 100%; transform-style: preserve-3d; z-index: 5; pointer-events: none; }
+.leaf.fwd { right: 0; transform-origin: left center; }
+.book.single .leaf.fwd { left: 0; right: auto; }
+.leaf.bwd { left: 0; transform-origin: right center; }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; background: #f6efe2; }
+.face.b { transform: rotateY(180deg); }
+.dim { position: absolute; inset: 0; background: #140a22; opacity: 0; pointer-events: none; z-index: 3; }
+
+/* one page of the book: the picture fills it; the text sits on a paper panel inside the picture */
+.page { position: absolute; inset: 0; overflow: hidden; container-type: inline-size; background: #f6efe2; }
+.page svg, .page img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.text { position: absolute; box-sizing: border-box; background: #fff8ea; color: #2b2240; border-radius: 1.4cqw; padding: 2.2cqw 2.4cqw;
+  box-shadow: 0 .4cqw 1.4cqw rgba(30, 15, 50, .28); font-size: 1.9cqw; line-height: 1.48; font-family: var(--read); }
+.text p { margin: 0 0 .7em; text-wrap: pretty; break-inside: avoid; }
+.text p:last-child { margin-bottom: 0; }
+.said { color: #6b2f6f; }
+.big { font-weight: 700; color: #1f4f96; }
+.blank { position: absolute; inset: 0; background: #f6efe2; }
+
+/* faint arrows either side of the book; pages also turn by clicking or tapping them, swiping, or the arrow keys */
+.nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 72px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; opacity: .5; transition: opacity .2s; }
+.nav svg { width: 28px; height: 28px; }
+.nav:hover, .nav:focus-visible { opacity: 1; }
+.nav:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+.nav.prev { left: 0; } .nav.next { right: 0; }
+.nav:disabled { visibility: hidden; }
+body.small .nav { display: none; }
+/* faint switches in the corner: one page at a time for bigger text (shown only where two pages fit), and full screen
+   (F key too; hidden where the browser can't go full screen). Each icon shows what it switches to. */
+.tools { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; display: flex; z-index: 10; }
+.tool { width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; opacity: .45; transition: opacity .2s; }
+.tool svg { width: 22px; height: 22px; }
+.fs .off, body.fullscreen .fs .on { display: none; } body.fullscreen .fs .off { display: inline; }
+.view .two, body.one-page .view .one { display: none; } body.one-page .view .two { display: inline; }
+.tool:hover, .tool:focus-visible { opacity: 1; }
+.tool:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+body.sheet .tools { display: none !important; }
+/* small screens: the text goes under the page, on the same paper */
+.phone-text { width: 100%; max-width: var(--bookw); box-sizing: border-box; background: #fff8ea; color: #2b2240; border-radius: 4px; padding: 14px 18px; font-size: 1.1rem; line-height: 1.55; box-shadow: 0 10px 24px -14px var(--shadow); }
+.phone-text p { margin: 0 0 .65em; } .phone-text p:last-child { margin: 0; }
+body.small .page .text { display: none; }
+/* the maker's credit: faint, in the bottom corner, like the credits in the Dua al-Faraj film's controls. The book is
+   sized to leave room for it (layout); on small screens, where the page scrolls, it follows the text instead. */
+.credit { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; font-size: 13px; color: var(--muted); opacity: .8; text-decoration: none; transition: opacity .2s; }
+.credit:hover, .credit:focus-visible { opacity: 1; text-decoration: underline; }
+.credit:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+body.small .credit { position: static; align-self: flex-end; }
+/* small screens held sideways: the text sits beside the page, in a column that scrolls */
+body.side .app { flex-direction: row; }
+body.side .stage { width: auto; flex: none; }
+body.side .phone-text { width: auto; flex: 0 1 400px; max-width: none; max-height: var(--ph); overflow-y: auto; }
+body.side .credit { position: fixed; }
+
+/* sheet mode (#sheet-<page>): one page filling the window, used to render the print files */
+body.sheet .app { padding: 0; display: block; }
+body.sheet .stage, body.sheet .phone-text, body.sheet .credit { display: none !important; }
+.sheet-page { position: relative; width: 100vw; aspect-ratio: 1600 / 1131; }
+/* print: one page per landscape A4 sheet */
+.printset { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  body { background: #fff; }
+  .app { padding: 0; display: block; }
+  .stage, .phone-text, .tools, .credit { display: none !important; }
+  .printset { display: block !important; }
+  .printset .sheet-page { width: 297mm; height: 210mm; aspect-ratio: auto; break-after: page; }
+}
+</style>
+
+<div class="app">
+  <div class="tools">
+    <button class="tool view" id="view" type="button" aria-label="One page at a time" title="One page at a time" hidden>
+      <svg class="one" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <svg class="two" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h18v10H3zM12 7.5v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="tool fs" id="fs" type="button" aria-label="Full screen" title="Full screen (F)" hidden>
+      <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="stage">
+    <button class="nav prev" id="prev" type="button" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="book closed" id="book" aria-live="polite">
+      <div class="slot l" id="slotL"></div>
+      <div class="slot r" id="slotR"></div>
+    </div>
+    <button class="nav next" id="next" type="button" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="phone-text" id="phoneText" hidden></div>
+  <a class="credit" id="credit" href="https://www.linkedin.com/in/faizan-abbas-b774a2217/" target="_blank" rel="noopener">by Faizan Abbas</a>
+  <div class="printset" id="printset"></div>
+</div>
+
+<script>
+/* Kumayl, Fizza and the Jar of Lights: drawing toolkit and characters.
+   Painted-storybook look: no outlines, shapes modelled with soft shadow, warm key light, cool rim light, paper grain.
+   Everything returns SVG strings. Characters are drawn around a local origin and placed with translate/scale. */
+(function () {
+  let uid = 0;
+  const nid = p => p + (++uid);
+  const f = v => (Math.round(v * 10) / 10).toString();
+  const pt = p => f(p[0]) + ' ' + f(p[1]);
+
+  /* ---------- geometry ---------- */
+  function cubic(p0, p1, p2, p3, t) {
+    const u = 1 - t;
+    return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+            u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]];
+  }
+  /* A tapered brush stroke along one cubic: width w0 at the start, wm in the middle, w1 at the end. */
+  function brush(c, w0, wm, w1, fill, extra = '') {
+    const N = 26, L = [], R = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, p = cubic(c[0], c[1], c[2], c[3], t);
+      const a = cubic(c[0], c[1], c[2], c[3], Math.max(0, t - .01)), b = cubic(c[0], c[1], c[2], c[3], Math.min(1, t + .01));
+      let dx = b[0] - a[0], dy = b[1] - a[1]; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+      const w = (t < .5 ? w0 + (wm - w0) * (t / .5) * (2 - t / .5) : wm + (w1 - wm) * ((t - .5) / .5) ** 2) / 2;
+      L.push([p[0] - dy * w, p[1] + dx * w]); R.push([p[0] + dy * w, p[1] - dx * w]);
+    }
+    return `<path d="M${L.map(pt).join(' L')} L${R.reverse().map(pt).join(' L')} Z" fill="${fill}" ${extra}/>`;
+  }
+  /* soft shading: blurred shapes clipped to a region */
+  function soft(clipD, shapes, blur, extra = '') {
+    const id = nid('sc');
+    return `<clipPath id="${id}"><path d="${clipD}"/></clipPath><g clip-path="url(#${id})" ${extra}><g filter="url(#blur${blur})">${shapes}</g></g>`;
+  }
+  /* rim light: the part of a shape that is not covered by the same shape shifted by (dx, dy) */
+  function rim(d, dx, dy, fill, op = 1, blur = 0) {
+    const id = nid('rm');
+    return `<mask id="${id}" maskUnits="userSpaceOnUse" x="-4000" y="-4000" width="8000" height="8000"><path d="${d}" fill="#fff"/><path d="${d}" transform="translate(${dx} ${dy})" fill="#000"/></mask>
+      <g mask="url(#${id})"><path d="${d}" fill="${fill}" opacity="${op}" ${blur ? `filter="url(#blur${blur})"` : ''}/></g>`;
+  }
+  /* colour line: the same shapes drawn fat in a darker tone, under the fills, so only the silhouette shows as a thin line */
+  const hold = (svg, col, lw = 2.4) => svg.replace(/ opacity="[^"]*"/g, '').replace(/fill="[^"]*"/g, `fill="${col}" stroke="${col}" stroke-width="${2 * lw}" stroke-linejoin="round"`);
+
+  /* ---------- palette ---------- */
+  const C = {
+    skin: '#f3c39c', skinSh: '#d99a78', skinDeep: '#b9725a', skinHi: '#ffe3c8', blush: '#f08d80',
+    lid: '#3a2219', iris: '#5a3420', irisDeep: '#2a140b', white: '#fffaf3',
+    mouth: '#7c2a26', tongue: '#e8746d', teeth: '#fffaf3',
+    hair: '#2a1b16', hairSh: '#170e0b', hairHi: '#5e4436',
+    scarf: '#b8a1e6', scarfSh: '#8a72c8', scarfDeep: '#6a54a8', scarfHi: '#e3d8fb', cap: '#fbf6ff',
+    dress: '#f2919a', dressSh: '#cf6c80', dressDeep: '#a84f66',
+    tunic: '#4f9fd6', tunicSh: '#3478ae', tunicDeep: '#24598a', tunicHi: '#9ccff0',
+    skinLine: '#b56f56', hairLine: '#0e0806', scarfLine: '#62489c', dressLine: '#a14a64', tunicLine: '#1f4f80',
+    warm: '#ffc670', warmCloth: '#ffb08a', warmHot: '#ffe6a8', moon: '#cfe0ff'
+  };
+
+  /* ---------- faces (3/4 view, facing right; mirror for left) ---------- */
+  /* An eye: almond white, glossy iris that looks toward (lx, ly), tapered upper lash line.
+     near = 1 for the eye closer to the viewer, smaller values squeeze it for the far side. */
+  function eye(x, y, s, near, look, lashes, opts = {}) {
+    const rx = 23 * s * near, ry = 27 * s, cid = nid('ey');
+    const white = `M${f(x - rx)} ${f(y + 2)} C${f(x - rx)} ${f(y - ry * .9)} ${f(x - rx * .35)} ${f(y - ry)} ${f(x + rx * .1)} ${f(y - ry)} C${f(x + rx * .75)} ${f(y - ry)} ${f(x + rx)} ${f(y - ry * .55)} ${f(x + rx)} ${f(y + 2)} C${f(x + rx)} ${f(y + ry * .8)} ${f(x + rx * .45)} ${f(y + ry)} ${f(x)} ${f(y + ry)} C${f(x - rx * .5)} ${f(y + ry)} ${f(x - rx)} ${f(y + ry * .8)} ${f(x - rx)} ${f(y + 2)} Z`;
+    const ix = x + look[0] * rx * .42, iy = y + 3 * s + look[1] * ry * .3, ir = 18.5 * s;
+    if (opts.closed) {
+      return brush([[x - rx - 2, y + 2], [x - rx * .4, y + ry * .55], [x + rx * .4, y + ry * .55], [x + rx + 2, y]], 2, 6 * s, 2.5, C.lid);
+    }
+    const out = [];
+    out.push(`<clipPath id="${cid}"><path d="${white}"/></clipPath>`);
+    out.push(`<path d="${white}" fill="${C.white}"/>`);
+    out.push(`<g clip-path="url(#${cid})">
+      <ellipse cx="${f(ix)}" cy="${f(iy)}" rx="${f(ir * Math.max(.72, near))}" ry="${f(ir * 1.08)}" fill="url(#irisG)"/>
+      <ellipse cx="${f(ix)}" cy="${f(iy + 1)}" rx="${f(ir * .5 * Math.max(.72, near))}" ry="${f(ir * .55)}" fill="${C.irisDeep}"/>
+      <path d="${white}" fill="none" stroke="${C.lid}" stroke-opacity=".18" stroke-width="${f(10 * s)}" transform="translate(0 ${f(-5 * s)})"/>
+      <ellipse cx="${f(x)}" cy="${f(y - ry * .95)}" rx="${f(rx * 1.1)}" ry="${f(ry * .42)}" fill="${C.lid}" opacity=".16"/>
+    </g>`);
+    out.push(`<circle cx="${f(ix - ir * .38)}" cy="${f(iy - ir * .42)}" r="${f(ir * .34)}" fill="#fff"/>`);
+    out.push(`<circle cx="${f(ix + ir * .35)}" cy="${f(iy + ir * .38)}" r="${f(ir * .14)}" fill="#fff" opacity=".9"/>`);
+    /* upper lid line, heaviest towards the outer corner */
+    const outer = opts.outerLeft ? -1 : 1;
+    const a = [x - rx * outer - 3 * outer, y + 4], b = [x + rx * outer + 1 * outer, y - 2];
+    const lid = outer > 0
+      ? [[x - rx - 2, y + 1], [x - rx * .7, y - ry * 1.12], [x + rx * .6, y - ry * 1.16], [x + rx + 4, y - ry * .2]]
+      : [[x + rx + 2, y + 1], [x + rx * .7, y - ry * 1.12], [x - rx * .6, y - ry * 1.16], [x - rx - 4, y - ry * .2]];
+    out.push(brush(lid, 2.5 * s, 7.5 * s, 5.5 * s, C.lid));
+    if (lashes) {
+      const e = lid[3], d = outer;
+      out.push(brush([[e[0] - 4 * d, e[1] + 2], [e[0] + 2 * d, e[1] - 3], [e[0] + 7 * d, e[1] - 6], [e[0] + 11 * d, e[1] - 12]], 5 * s, 3.4 * s, 1, C.lid));
+      out.push(brush([[e[0] - 10 * d, e[1] - 6], [e[0] - 7 * d, e[1] - 11], [e[0] - 4 * d, e[1] - 15], [e[0] - 1 * d, e[1] - 21]], 4.4 * s, 3 * s, 1, C.lid));
+    }
+    /* lower lid hint */
+    out.push(brush([[x - rx * .55, y + ry * .98], [x - rx * .2, y + ry * 1.08], [x + rx * .2, y + ry * 1.08], [x + rx * .55, y + ry * .96]], 1, 2.4 * s, 1, C.skinDeep, 'opacity=".45"'));
+    return out.join('');
+  }
+
+  /* mouths for a 3/4 face, centre (x, y); the far side is on the right */
+  function mouth(x, y, s, kind) {
+    if (kind === 'smile') {
+      return brush([[x - 24 * s, y - 5 * s], [x - 13 * s, y + 11 * s], [x + 8 * s, y + 12 * s], [x + 17 * s, y - 3 * s]], 2, 5.6 * s, 2, C.mouth) +
+        brush([[x - 27 * s, y - 9 * s], [x - 26 * s, y - 6 * s], [x - 25 * s, y - 4 * s], [x - 23 * s, y - 3 * s]], 1, 3 * s, 1, C.mouth, 'opacity=".6"');
+    }
+    /* open, delighted */
+    const cid = nid('mo');
+    const o = `M${f(x - 25 * s)} ${f(y - 7 * s)} C${f(x - 12 * s)} ${f(y - 2 * s)} ${f(x + 8 * s)} ${f(y - 3 * s)} ${f(x + 19 * s)} ${f(y - 8 * s)} C${f(x + 18 * s)} ${f(y + 14 * s)} ${f(x + 6 * s)} ${f(y + 24 * s)} ${f(x - 6 * s)} ${f(y + 23 * s)} C${f(x - 18 * s)} ${f(y + 21 * s)} ${f(x - 25 * s)} ${f(y + 8 * s)} ${f(x - 25 * s)} ${f(y - 7 * s)} Z`;
+    return `<clipPath id="${cid}"><path d="${o}"/></clipPath><path d="${o}" fill="${C.mouth}"/>
+      <g clip-path="url(#${cid})"><ellipse cx="${f(x - 3 * s)}" cy="${f(y + 24 * s)}" rx="${f(17 * s)}" ry="${f(11 * s)}" fill="${C.tongue}"/>
+      <path d="M${f(x - 26 * s)} ${f(y - 9 * s)} C${f(x - 12 * s)} ${f(y - 3 * s)} ${f(x + 8 * s)} ${f(y - 4 * s)} ${f(x + 20 * s)} ${f(y - 10 * s)} L${f(x + 18 * s)} ${f(y - 1 * s)} C${f(x + 6 * s)} ${f(y + 3 * s)} ${f(x - 12 * s)} ${f(y + 4 * s)} ${f(x - 24 * s)} ${f(y - 1 * s)} Z" fill="${C.teeth}"/></g>
+      ${brush([[x - 28 * s, y - 10 * s], [x - 27 * s, y - 7 * s], [x - 26 * s, y - 5 * s], [x - 24 * s, y - 3 * s]], 1, 3 * s, 1, C.mouth, 'opacity=".6"')}`;
+  }
+
+  /* ---------- shared defs ---------- */
+  const defs = `
+    ${[2, 3, 4, 6, 8, 10, 12, 16, 24, 40, 60].map(b => `<filter id="blur${b}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="${b}"/></filter>`).join('')}
+    <radialGradient id="irisG" cx=".45" cy=".35" r=".7"><stop offset="0" stop-color="#9a6238"/><stop offset=".55" stop-color="${C.iris}"/><stop offset="1" stop-color="${C.irisDeep}"/></radialGradient>
+    <radialGradient id="jarHalo"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset=".45" stop-color="#ffb84d" stop-opacity=".22"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>
+    <filter id="plaster" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .03" numOctaves="4" seed="2"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .18  0 0 0 0 .12  0 0 0 0 .22  0 0 0 1.4 -.55"/></filter>
+    <filter id="stucco" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".05 .09" numOctaves="3" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .25  0 0 0 0 .16  0 0 0 0 .3  0 0 0 1.2 -.5"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .5  0 0 0 0 .42  0 0 0 0 .34  0 0 0 1.1 -.45"/></filter>`;
+
+  window.ART = { brush, soft, rim, hold, cubic, nid, f, pt, C, defs, eye, mouth };
+})();
+
+/* Kumayl, Fizza and the Jar of Lights: the characters.
+   Heads are built in 3/4 view facing right (the near side is on the left); mirror the group to face left.
+   Head local origin: the middle of the head; the chin is at about y = 122. */
+(function () {
+  const { brush, soft, rim, hold, nid, C, eye, mouth } = ART;
+
+  const SKULL = 'M-104 -18 C-110 -84 -60 -128 0 -128 C62 -128 104 -88 108 -30 C110 -6 106 12 108 30 C110 60 92 92 62 110 C44 120 22 124 4 122 C-30 120 -60 104 -76 80 C-84 68 -88 56 -92 46 C-102 26 -104 4 -104 -18 Z';
+
+  function features(o, girl) {
+    const look = o.look || [.55, .1], out = [], bx = o.brows || 0;
+    out.push(brush([[-44, -20 - bx], [-32, -31 - bx], [-12, -33 - bx], [2, -26 - bx]], 3, girl ? 6.5 : 9, 3, C.hair, 'opacity=".92"'));
+    out.push(brush([[56, -28 - bx], [66, -36 - bx], [82, -36 - bx], [94, -26 - bx]], 3, girl ? 5.5 : 8, 2, C.hair, 'opacity=".92"'));
+    const closed = o.eyes === 'closed';
+    out.push(eye(-14, 18, girl ? 1.04 : 1, 1, look, girl, { outerLeft: true, closed }));
+    out.push(eye(76, 15, girl ? 1.04 : 1, .6, look, girl, { closed }));
+    out.push(brush([[56, 40], [64, 50], [64, 58], [54, 62]], 1.5, 5, 1.5, C.skinDeep, 'opacity=".5"'));
+    out.push(`<ellipse cx="52" cy="47" rx="4" ry="3.2" fill="${C.skinHi}" opacity=".85"/>`);
+    out.push(mouth(46, 84, girl ? .9 : 1, o.mouth || 'smile'));
+    return out.join('');
+  }
+  function skinShading(clip, girl) {
+    return soft(clip, `
+      <g filter="url(#blur12)"><ellipse cx="-96" cy="10" rx="30" ry="110" fill="${C.skinSh}" opacity=".7"/>
+        <ellipse cx="20" cy="132" rx="96" ry="22" fill="${C.skinSh}" opacity=".7"/></g>
+      <g filter="url(#blur10)"><ellipse cx="-30" cy="58" rx="24" ry="14" fill="${C.blush}" opacity="${girl ? .55 : .38}"/>
+        <ellipse cx="96" cy="54" rx="12" ry="12" fill="${C.blush}" opacity="${girl ? .5 : .32}"/></g>
+      <g filter="url(#blur8)"><ellipse cx="66" cy="-8" rx="26" ry="9" fill="${C.skinHi}" opacity=".5"/>
+        <ellipse cx="88" cy="40" rx="8" ry="16" fill="${C.skinHi}" opacity=".35"/></g>`, 2);
+  }
+  const warmGlow = (clip, o, dx = 0) => o.warm ? soft(clip, `<ellipse cx="${(o.warmX ?? 140) + dx}" cy="90" rx="130" ry="120" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .32}"`) : '';
+
+  /* ---------- Kumayl (about 8): short dark hair with a fringe swept towards his face ---------- */
+  function kumaylHead(o = {}) {
+    const out = [];
+    const ear = 'M-56 -2 C-72 -16 -98 -10 -98 16 C-98 42 -80 56 -60 46 Z';
+    const hair = 'M-96 52 C-114 40 -124 8 -122 -30 C-120 -100 -72 -140 -8 -142 C62 -148 118 -106 120 -42 C120 -26 116 -12 110 -2 C104 -16 100 -26 94 -34 C90 -24 84 -18 76 -16 C76 -28 72 -38 66 -44 C58 -32 48 -26 38 -26 C38 -38 34 -46 28 -52 C20 -40 6 -34 -6 -34 C-6 -44 -10 -52 -16 -56 C-24 -46 -34 -42 -44 -42 C-46 -30 -48 -14 -50 6 C-54 -2 -60 -8 -66 -10 C-78 -14 -92 -12 -100 -2 C-104 14 -104 34 -96 52 Z';
+    const hid = nid('hr'), eid = nid('er');
+    out.push(hold(`<path d="${SKULL}" fill="x"/>`, C.skinLine));
+    out.push(`<path d="${SKULL}" fill="${C.skin}"/>`);
+    out.push(skinShading(SKULL, false));
+    out.push(hold(`<path d="${ear}" fill="x"/>`, C.skinLine, 2));
+    out.push(`<clipPath id="${eid}"><path d="${ear}"/></clipPath><path d="${ear}" fill="${C.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-62 4 C-74 -2 -88 4 -88 18 C-88 32 -78 40 -66 36" fill="none" stroke="${C.skinSh}" stroke-width="9"/>
+      <ellipse cx="-56" cy="22" rx="10" ry="24" fill="${C.skinSh}" opacity=".8"/></g></g>`);
+    out.push(hold(`<path d="${hair}" fill="x"/>`, C.hairLine, 2.2));
+    out.push(`<clipPath id="${hid}"><path d="${hair}"/></clipPath><path d="${hair}" fill="${C.hair}"/>`);
+    out.push(`<g clip-path="url(#${hid})">
+      <g filter="url(#blur8)">${brush([[-86, -88], [-50, -126], [20, -132], [76, -106]], 6, 22, 6, C.hairHi, 'opacity=".8"')}</g>
+      <g filter="url(#blur3)">${brush([[-66, -86], [-36, -110], [6, -116], [44, -104]], 2, 6, 2, '#8d6b58', 'opacity=".55"')}</g>
+      ${brush([[-30, -100], [-4, -112], [40, -110], [86, -80]], 1, 3.2, 1, C.hairSh, 'opacity=".75"')}
+      ${brush([[-60, -60], [-30, -90], [20, -98], [64, -66]], 1, 3.2, 1, C.hairSh, 'opacity=".75"')}
+      ${brush([[-100, 0], [-96, -40], [-70, -80], [-40, -96]], 1, 3, 1, C.hairSh, 'opacity=".6"')}
+      ${[[[-70, -118], [-30, -112], [20, -84], [46, -40]], [[-50, -128], [0, -124], [50, -96], [74, -44]], [[-20, -136], [30, -134], [80, -110], [100, -40]], [[-90, -96], [-60, -86], [-20, -60], [0, -40]]]
+          .map((c, i) => brush(c, 1, i === 1 ? 5 : 3.5, 1, C.hairHi, 'opacity=".55"')).join('')}
+      <g filter="url(#blur6)"><path d="M-130 40 C-120 -20 -100 -60 -90 -70 L-140 -70 Z" fill="${C.hairSh}" opacity=".8"/></g>
+    </g>`);
+    out.push(features(o, false));
+    out.push(warmGlow(SKULL, o));
+    if (o.rimL) out.push(rim(hair, 5, 0, '#8f9fe0', o.rimL * .6, 2));
+    if (o.rimR) out.push(rim(hair, -8, 4, C.moon, o.rimR, 2));
+    return out.join('');
+  }
+
+  /* ---------- Fizza (about 6): lilac hijab with a white under-cap ---------- */
+  /* one piece (the user's choice, variant C of lab-hijab-variants.html): a round hood that hugs the head, a soft dip at
+     the neck, then the cloth lies on the shoulders and ends just below them, so her sleeves come out from under it */
+  const HIJAB = 'M2 -124 C68 -124 124 -84 128 -22 C131 26 124 74 114 106 C108 124 110 138 118 152 C130 172 144 196 146 226 C147 246 140 262 126 268 C88 278 46 282 8 284 C-36 284 -86 280 -124 270 C-142 264 -152 250 -152 230 C-152 210 -144 186 -128 168 C-120 156 -116 136 -118 116 C-122 70 -128 20 -128 -16 C-130 -76 -68 -124 2 -124 Z';
+  function fizzaHead(o = {}) {
+    o = Object.assign({ mouth: 'open' }, o);
+    const out = [];
+    const face = 'M-72 -38 C-52 -76 0 -88 50 -82 C86 -76 104 -48 106 -14 C108 12 104 34 104 52 C100 84 82 106 56 116 C36 124 14 124 -4 120 C-36 112 -60 92 -70 62 C-78 32 -82 -8 -72 -38 Z';
+    const capEdge = 'M-100 -6 C-62 -60 -4 -78 46 -73 C82 -69 104 -48 120 -18';
+    const cap = 'M-120 -160 L140 -160 L140 -18 L120 -18 C104 -48 82 -69 46 -73 C-4 -78 -62 -60 -100 -6 L-120 -6 Z';
+    /* the whole hijab is one piece: over the head, narrowing a little at the neck, falling over the shoulders */
+    const hijab = CH.HIJAB, hid = nid('hd');
+    out.push(hold(`<path d="${hijab}" fill="x"/>`, C.scarfLine));
+    out.push(`<clipPath id="${hid}"><path d="${hijab}"/></clipPath><path d="${hijab}" fill="${C.scarf}"/>`);
+    out.push(`<g clip-path="url(#${hid})">
+      <g filter="url(#blur16)"><ellipse cx="-122" cy="10" rx="24" ry="130" fill="${C.scarfSh}" opacity=".55"/>
+        <path d="M-190 170 C-168 220 -156 270 -146 330 L-210 330 Z" fill="${C.scarfSh}" opacity=".6"/>
+        <path d="M-112 126 C-60 158 70 162 116 122 C100 172 40 182 0 180 C-50 178 -96 164 -112 126 Z" fill="${C.scarfSh}" opacity=".7"/></g>
+      <g filter="url(#blur8)">${brush([[-96, 108], [-56, 146], [44, 150], [98, 104]], 2, 9, 2, C.scarfHi, 'opacity=".35"')}</g>
+      <g filter="url(#blur10)"><path d="M-70 -136 C20 -146 104 -110 122 -34 C96 -94 30 -120 -70 -118 Z" fill="${C.scarfHi}" opacity=".9"/>
+        <path d="M112 150 C128 166 142 190 148 220 L162 170 Z" fill="${C.scarfHi}" opacity=".5"/></g>
+      <g filter="url(#blur4)">
+      ${[[[-44, 184], [-56, 230], [-66, 270], [-72, 320], 1, 6], [[22, 186], [24, 232], [26, 272], [26, 324], 1, 5], [[84, 172], [98, 214], [110, 256], [118, 310], 2, 6], [[-108, 176], [-120, 220], [-128, 260], [-132, 310], 2, 6]]
+        .map(([a, b, c, d, w0, wm]) => brush([a, b, c, d], w0, wm, 2, C.scarfDeep, 'opacity=".2"')).join('')}
+      ${[[[-14, 186], [-18, 232], [-22, 272], [-24, 320], 1, 7], [[54, 182], [62, 226], [68, 266], [72, 316], 1, 6]]
+        .map(([a, b, c, d, w0, wm]) => brush([a, b, c, d], w0, wm, 2, C.scarfHi, 'opacity=".28"')).join('')}</g>
+      ${brush([[-96, -70], [-114, -30], [-118, 10], [-114, 50]], 2, 6, 2, C.scarfDeep, 'opacity=".2" filter="url(#blur2)"')}
+    </g>`);
+    out.push(`<path d="${face}" fill="none" stroke="${C.scarfSh}" stroke-width="12" stroke-linejoin="round" opacity=".55"/>`);
+    out.push(hold(`<path d="${face}" fill="x"/>`, C.scarfDeep, 1.6));
+    out.push(`<path d="${face}" fill="${C.skin}"/>`);
+    out.push(skinShading(face, true));
+    out.push(soft(face, `<path d="M-90 -60 C-50 -96 70 -100 120 -50 L120 -16 C60 -60 -40 -62 -90 -16 Z" fill="${C.skinSh}" opacity=".9"/>`, 10));
+    const ccl = nid('cap');
+    out.push(`<clipPath id="${ccl}"><path d="${face}"/></clipPath><g clip-path="url(#${ccl})">
+      <path d="${cap}" fill="${C.cap}"/>
+      <g filter="url(#blur3)"><path d="M-120 -150 L140 -150 L140 -70 C110 -84 60 -96 0 -94 C-50 -92 -90 -76 -120 -50 Z" fill="#cfc0ee" opacity=".55"/></g>
+      <path d="${capEdge}" fill="none" stroke="#c4b3ea" stroke-width="3"/>
+    </g>`);
+    out.push(features(o, true));
+    out.push(warmGlow(face, o));
+    if (o.warm) out.push(soft(hijab, `<ellipse cx="${o.warmX ?? 180}" cy="120" rx="170" ry="210" fill="${C.warmCloth}"/>`, 24, `opacity="${o.warm * .16}"`));
+    if (o.rimL) out.push(rim(hijab, 8, 3, C.moon, o.rimL, 2));
+    if (o.rimR) out.push(rim(hijab, -8, 3, C.moon, o.rimR, 2));
+    return out.join('');
+  }
+
+  window.CH = { kumaylHead, fizzaHead, SKULL, HIJAB };
+})();
+
+/* Bodies, arms, hands and the jar. Character space: the head's origin is (0, 0), the chin is at y = 122,
+   shoulders at about y = 200. Characters face right; mirror the whole group to face left. */
+(function () {
+  const { brush, soft, rim, hold, nid, f, C } = ART;
+  const rad = a => a * Math.PI / 180;
+
+  /* ---------- hands: separate fingers (the first design the user liked), posed correctly ----------
+     Wrist at the origin, pointing along +x, the thumb side towards -y, seen from the back of the hand.
+     Each finger is [base, angle (deg), length, width, curl]; fingers are listed back to front. */
+  const PALM = 'M-2 -15 C8 -19 22 -21 34 -19 C40 -10 40 10 34 19 C22 21 8 19 -2 15 C-6 6 -6 -6 -2 -15 Z';
+  const HANDS = {
+    cup: { thumbBack: [[6, -12], -55, 24, 12.5, -4],
+           fingers: [[[32, 13], 12, 22, 9.4, 5], [[34, 5], 6, 27, 10.4, 5], [[34, -4], 1, 30, 11, 5], [[33, -13], -4, 27, 10.6, 5]] },
+    rest: { thumbBack: [[6, -12], -50, 23, 12.5, -4],
+           fingers: [[[32, 13], 16, 20, 9.4, 9], [[34, 5], 10, 25, 10.4, 9], [[34, -4], 4, 28, 11, 9], [[33, -13], -1, 25, 10.6, 8]] },
+    hold: { fingers: [[[32, 13], 18, 21, 9.4, 6], [[34, 5], 11, 26, 10.4, 6], [[34, -4], 5, 28, 11, 6], [[33, -13], -2, 22, 10.6, 9]],
+           thumbFront: [[8, -14], 0, 38, 11.5, 4], tip: [55, -14] },
+    pinch: { fingers: [[[32, 13], 34, 10, 9.6, 0], [[34, 5], 26, 11, 10.4, 0], [[34, -4], 18, 12, 11, 0], [[33, -13], -15, 20, 10.6, 2]],
+           thumbFront: [[10, -15], -8, 40, 12, 3], tip: [53, -22] },
+    fist: { fingers: [[[26, 14.4], 0, 15, 9.6, 1.5], [[27, 4.8], 0, 17, 10.2, 1.5], [[27, -4.8], 0, 17.5, 10.4, 1.5], [[26, -14.4], 0, 16.5, 10.2, 1.5]],
+           thumbFront: [[6, -13], -6, 34, 11.5, 7], tip: [37, 0] },
+    open: { thumbBack: [[6, -12], -62, 24, 12.5, -3],
+           fingers: [[[32, 13], 16, 21, 9.4, 2.5], [[34, 5], 7, 27, 10.4, 2], [[34, -4], 0, 30, 11, 1.5], [[33, -13], -8, 27, 10.6, 1.5]] },
+    /* index finger straight, the other three folded down to the knuckles (a 6th value of 1 marks a folded finger), thumb tucked */
+    point: { thumbBack: [[6, -11], -14, 24, 12, 3], behind: true,
+           fingers: [[[22, 12.5], 6, 19, 9.8, 1.5, 1], [[23, 4.2], 3, 21, 10.4, 1.5, 1], [[24, -4.2], 1, 21.5, 10.8, 1.5, 1], [[26, -12.4], -2, 40, 10.8, .5]], tip: [70, -14] },
+    grip: { fingers: [[[32, 13], 60, 10, 9.6, 0], [[34, 5], 50, 11, 10.4, 0], [[34, -4], 40, 12, 11, 0], [[33, -13], 30, 12, 10.6, 0]],
+           thumbFront: [[8, -13], 12, 30, 12, 3], tip: [40, 2] }
+  };
+  /* a finger as a tube with a round tip; returns the shape (fill "x") and its centre line */
+  function fingerShape(b, a, l, w, curl) {
+    const d = [Math.cos(rad(a)), Math.sin(rad(a))], n = [-d[1], d[0]];
+    const p3 = [b[0] + d[0] * l + n[0] * curl, b[1] + d[1] * l + n[1] * curl];
+    const p1 = [b[0] + d[0] * l * .4, b[1] + d[1] * l * .4], p2 = [b[0] + d[0] * l * .75 + n[0] * curl * .4, b[1] + d[1] * l * .75 + n[1] * curl * .4];
+    return { shape: brush([b, p1, p2, p3], w, w * .96, w * .84, 'x') + `<circle cx="${f(p3[0])}" cy="${f(p3[1])}" r="${f(w * .42)}" fill="x"/>`, c: [b, p1, p2, p3], n, w };
+  }
+  function hand(kind, o = {}) {
+    const H = HANDS[kind], sk = o.skin || C.skin, sh = o.shade || C.skinSh, ln = o.skinLine || C.skinLine, hi = o.hi || C.skinHi;
+    const parts = [{ shape: brush([[-18, 0], [-10, 0], [-2, 0], [6, 0]], 22, 23, 25, 'x'), palm: true }];
+    if (H.thumbBack) parts.push(fingerShape(...H.thumbBack));
+    const palm = { shape: `<path d="${PALM}" fill="x"/>`, palm: true }, fings = H.fingers.map(fg => Object.assign(fingerShape(...fg), { folded: fg[5] }));
+    /* "behind": the finger bases tuck under the palm, so only the knuckles and the raised finger show past its edge */
+    if (H.behind) parts.push(...fings, palm); else parts.push(palm, ...fings);
+    if (H.thumbFront) parts.push(fingerShape(...H.thumbFront));
+    const all = parts.map(p => p.shape).join('');
+    const out = [];
+    for (const p of parts) {
+      out.push(p.shape.replace(/fill="x"/g, `fill="${sk}"`));
+      if (p.c) {
+        /* a soft shadow along the lower edge separates each finger from the next */
+        const off = (pt, k) => [pt[0] + p.n[0] * p.w * k, pt[1] + p.n[1] * p.w * k];
+        out.push(brush([off(p.c[0], .36), off(p.c[1], .36), off(p.c[2], .32), off(p.c[3], .26)], 1, 2.6, .6, sh, 'opacity=".55" filter="url(#blur2)"'));
+        if (!p.folded) out.push(`<ellipse cx="${f(p.c[1][0] - p.n[0] * p.w * .18)}" cy="${f(p.c[1][1] - p.n[1] * p.w * .18)}" rx="${f(p.w * .26)}" ry="${f(p.w * .16)}" fill="${hi}" opacity=".35"/>`);
+      } else {
+        out.push(soft(PALM, `<ellipse cx="20" cy="20" rx="34" ry="9" fill="${sh}" opacity=".8"/><ellipse cx="24" cy="-10" rx="18" ry="6" fill="${hi}" opacity=".5"/>`, 4));
+      }
+    }
+    if (o.warm) out.push(soft(PALM, `<ellipse cx="${o.warmX ?? 80}" cy="0" rx="70" ry="50" fill="${C.warm}"/>`, 16, `opacity="${o.warm * .3}"`));
+    return out.join('');
+  }
+
+  /* ---------- arms: the upper arm (shoulder -> elbow) and the forearm (elbow -> wrist) are separate pieces,
+     so a scene can tuck the upper arm behind the body and bring the forearm in front ---------- */
+  function arm(o) {
+    const { s, e, w } = o, wu = o.wu || 54, we = o.we || 46, ww = o.ww || 38;
+    const seg = (a, b, w0, w1) => brush([a, [a[0] + (b[0] - a[0]) * .33, a[1] + (b[1] - a[1]) * .33], [a[0] + (b[0] - a[0]) * .66, a[1] + (b[1] - a[1]) * .66], b], w0, (w0 + w1) / 2, w1, 'x');
+    const circ = (p, r) => `<circle cx="${f(p[0])}" cy="${f(p[1])}" r="${f(r)}" fill="x"/>`;
+    const upperParts = seg(s, e, wu, we) + circ(s, wu / 2) + circ(e, we / 2);
+    const foreParts = seg(e, w, we, ww) + circ(e, we / 2);
+    const piece = (parts, shadeD) => {
+      const cid = nid('arm');
+      return hold(parts, o.line || o.sh, 2.2) + parts.replace(/fill="x"/g, `fill="${o.col}"`) +
+        `<clipPath id="${cid}">${parts.replace(/ fill="x"/g, '')}</clipPath><g clip-path="url(#${cid})"><g filter="url(#blur8)">${shadeD}</g></g>`;
+    };
+    const shadeU = `<path d="M${f(s[0] + 34)} ${f(s[1] + 14)} L${f(e[0] + 22)} ${f(e[1] + 26)} L${f(e[0] + 22)} ${f(e[1] + 80)} L${f(s[0] + 40)} ${f(s[1] + 90)} Z" fill="${o.sh}" opacity=".8"/>`;
+    const shadeF = `<path d="M${f(e[0] + 22)} ${f(e[1] + 26)} L${f(w[0])} ${f(w[1] + 22)} L${f(w[0])} ${f(w[1] + 70)} L${f(e[0] + 22)} ${f(e[1] + 80)} Z" fill="${o.sh}" opacity=".8"/>
+      ${o.warm ? `<ellipse cx="${f(w[0])}" cy="${f(w[1])}" rx="90" ry="60" fill="${C.warmCloth}" opacity="${o.warm * .26}"/>` : ''}`;
+    const ang = Math.atan2(w[1] - e[1], w[0] - e[0]) * 180 / Math.PI + (o.handRot || 0);
+    const flip = o.flipHand ? ' scale(1 -1)' : '';
+    const T = `translate(${f(w[0])} ${f(w[1])}) rotate(${f(ang)})${flip} scale(${o.hs || 1})`;
+    const handSvg = o.hand ? `<g transform="${T}">${hand(o.hand, o)}</g>` : '';
+    let tip = null;
+    if (o.hand && HANDS[o.hand].tip) {
+      const t = HANDS[o.hand].tip, r = ang * Math.PI / 180, sy = o.flipHand ? -1 : 1, hs = o.hs || 1;
+      tip = [w[0] + (t[0] * Math.cos(r) - t[1] * sy * Math.sin(r)) * hs, w[1] + (t[0] * Math.sin(r) + t[1] * sy * Math.cos(r)) * hs];
+    }
+    const ux = w[0] - e[0], uy = w[1] - e[1], L = Math.hypot(ux, uy) || 1, U = [ux / L, uy / L];
+    const at = k => [w[0] + U[0] * k, w[1] + U[1] * k];
+    /* the end of the sleeve, drawn again over the wrist so the hand comes out of the sleeve */
+    /* the hem reaches back as far as the (scaled) wrist piece of the hand, so no skin shows inside the sleeve */
+    const hb = -18 * Math.max(1, o.hs || 1) - 2;
+    const hemParts = brush([at(hb), at(hb * .66), at(hb * .33), at(1)], ww, ww + 1, ww + 2, 'x');
+    const hemClip = nid('hem');
+    const hem = hold(hemParts, o.line || o.sh, 2.2) + hemParts.replace(/fill="x"/, `fill="${o.col}"`) +
+      /* the sleeve's shading carries on over the hem, so the cuff is not a lighter band */
+      `<clipPath id="${hemClip}">${hemParts.replace(/ fill="x"/, '')}</clipPath><g clip-path="url(#${hemClip})"><g filter="url(#blur8)">${shadeF}</g></g>` +
+      brush([at(-9), at(-6), at(-3), at(1)], ww + 2, ww + 2.5, ww + 3, o.cuff || o.sh) +
+      `<path d="M${f(at(1)[0] - U[1] * (ww / 2 + 1.5))} ${f(at(1)[1] + U[0] * (ww / 2 + 1.5))} L${f(at(1)[0] + U[1] * (ww / 2 + 1.5))} ${f(at(1)[1] - U[0] * (ww / 2 + 1.5))}" stroke="${o.line || o.sh}" stroke-width="2.2" stroke-linecap="round"/>`;
+    const upper = piece(upperParts, shadeU), fore = piece(foreParts, shadeF);
+    /* for merging the upper arm into the body: its shapes, its fill without an outline, and a line along its inner edge */
+    const sgn = s[0] < 0 ? 1 : -1, dx = e[0] - s[0], dy = e[1] - s[1], Lu = Math.hypot(dx, dy) || 1;
+    let n = [-dy / Lu, dx / Lu]; if (Math.sign(n[0]) !== sgn) n = [-n[0], -n[1]];
+    const ed = (k, r) => [s[0] + dx * k + n[0] * r, s[1] + dy * k + n[1] * r];
+    const innerEdge = brush([ed(.34, wu / 2), ed(.55, (wu + we) / 4 + 1), ed(.75, we / 2 + 2), ed(.95, we / 2)], .6, 2.2, 1.6, o.line || o.sh);
+    const cidU = nid('arm');
+    const upperFill = upperParts.replace(/fill="x"/g, `fill="${o.col}"`) + `<clipPath id="${cidU}">${upperParts.replace(/ fill="x"/g, '')}</clipPath><g clip-path="url(#${cidU})"><g filter="url(#blur8)">${shadeU}</g></g>`;
+    const wholeParts = upperParts + foreParts, cidW = nid('arm');
+    const wholeFill = wholeParts.replace(/fill="x"/g, `fill="${o.col}"`) + `<clipPath id="${cidW}">${wholeParts.replace(/ fill="x"/g, '')}</clipPath><g clip-path="url(#${cidW})"><g filter="url(#blur8)">${shadeF}</g></g>`;
+    /* a soft crease on the inside of a bent elbow */
+    const bend = (() => { const a = [s[0] - e[0], s[1] - e[1]], b = [w[0] - e[0], w[1] - e[1]], la = Math.hypot(...a) || 1, lb = Math.hypot(...b) || 1;
+      const m = [a[0] / la + b[0] / lb, a[1] / la + b[1] / lb], lm = Math.hypot(...m) || 1, k = we * .42;
+      const c = [e[0] + m[0] / lm * k, e[1] + m[1] / lm * k];
+      return brush([[c[0] + a[0] / la * 16, c[1] + a[1] / la * 16], [c[0] + a[0] / la * 4, c[1] + a[1] / la * 4], [c[0] + b[0] / lb * 4, c[1] + b[1] / lb * 4], [c[0] + b[0] / lb * 16, c[1] + b[1] / lb * 16]], .6, 2.6, .6, o.line || o.sh, 'opacity=".55"'); })();
+    return { upper, fore, sleeve: upper + fore, hand: handSvg + (o.hand ? hem : ''), tip, upperParts, upperFill, innerEdge, wholeParts, wholeFill, bend };
+  }
+
+  /* Fizza's hijab drape over the shoulders; her sleeves are hidden wherever it covers them, so her arms come out from under it */
+  function underDrape(svg) {
+    const id = nid('ud');
+    return `<mask id="${id}" maskUnits="userSpaceOnUse" x="-2000" y="-2000" width="4000" height="4000"><rect x="-2000" y="-2000" width="4000" height="4000" fill="#fff"/>
+      <path d="${CH.HIJAB}" fill="#000" stroke="#000" stroke-width="5" stroke-linejoin="round"/></mask><g mask="url(#${id})">${svg}</g>`;
+  }
+
+  /* ---------- Fizza's body: pink dress, lilac hijab draped over the shoulders ---------- */
+  function fizzaBody(o = {}) {
+    const dress = 'M-96 200 C-118 240 -124 330 -120 520 L110 520 C112 350 108 250 90 196 C60 176 -60 176 -96 200 Z';
+    const out = [];
+    out.push(hold(`<path d="${dress}" fill="x"/>`, C.dressLine));
+    out.push(`<path d="${dress}" fill="${C.dress}"/>`);
+    out.push(soft(dress, `<path d="M-130 200 C-110 300 -100 400 -110 540 L-150 540 Z" fill="${C.dressSh}"/><ellipse cx="0" cy="360" rx="140" ry="40" fill="${C.dressSh}" opacity=".6"/>`, 16));
+    return out.join('');
+  }
+
+  /* ---------- Kumayl's body: blue dishdasha with a round collar ---------- */
+  function kumaylBody(o = {}) {
+    const neck = 'M-32 100 C-32 130 -33 156 -34 186 L46 186 C45 156 44 130 44 100 Z';
+    const tunic = 'M-96 202 C-116 244 -120 330 -118 520 L104 520 C106 350 104 256 90 200 C76 184 60 174 46 168 C40 186 22 194 6 194 C-12 194 -28 184 -34 170 C-56 176 -80 188 -96 202 Z';
+    const out = [];
+    out.push(hold(`<path d="${neck}" fill="x"/>`, C.skinLine));
+    out.push(`<path d="${neck}" fill="${C.skin}"/>`);
+    out.push(soft(neck, `<rect x="-40" y="96" width="100" height="44" fill="${C.skinDeep}" opacity=".75"/><rect x="-40" y="90" width="26" height="110" fill="${C.skinSh}"/>`, 8));
+    const arms = o.arms || [];
+    out.push(hold(`<path d="${tunic}" fill="x"/>` + arms.map(a => a.upperParts).join(''), C.tunicLine));
+    out.push(`<path d="${tunic}" fill="${C.tunic}"/>`);
+    out.push(soft(tunic, `<path d="M-140 200 C-118 300 -110 400 -116 540 L-160 540 Z" fill="${C.tunicSh}"/>
+      <ellipse cx="10" cy="380" rx="150" ry="40" fill="${C.tunicSh}" opacity=".6"/>
+      <ellipse cx="8" cy="192" rx="44" ry="14" fill="${C.tunicSh}" opacity=".8"/>
+      <path d="M40 210 C66 240 84 300 88 400 L112 400 L104 210 Z" fill="${C.tunicHi}" opacity=".3"/>`, 12));
+    /* rim light before the merged arms, so it follows the robe's outer edge and never runs down through an arm */
+    if (o.rimL) out.push(rim(tunic, 8, 2, C.moon, o.rimL, 2));
+    for (const a of arms) out.push(a.upperFill + a.innerEdge);
+    /* collar band, placket and buttons */
+    out.push(brush([[-36, 168], [-24, 192], [28, 196], [48, 166]], 7, 9, 7, C.tunic) + brush([[-36, 168], [-24, 192], [28, 196], [48, 166]], 1.5, 2.4, 1.5, C.tunicLine, 'opacity=".7"'));
+    out.push(brush([[-37, 174], [-25, 199], [29, 203], [49, 172]], 1.2, 2, 1.2, C.tunicLine, 'opacity=".6"'));
+    out.push(brush([[8, 204], [10, 236], [11, 270], [12, 300]], 3, 3, 3, C.tunicDeep, 'opacity=".5"'));
+    out.push(`<circle cx="17" cy="226" r="4" fill="${C.tunicDeep}" opacity=".7"/><circle cx="18" cy="256" r="4" fill="${C.tunicDeep}" opacity=".7"/>`);
+    if (o.warm) out.push(soft(tunic, `<ellipse cx="${o.warmX ?? 200}" cy="280" rx="160" ry="140" fill="${C.warmCloth}"/>`, 24, `opacity="${o.warm * .22}"`));
+    return out.join('');
+  }
+
+  /* ---------- a folded paper star ("lucky star"), centre at the origin, radius r ---------- */
+  const STAR_COLS = [['#ffd35c', '#f2a92e', '#fff2b8'], ['#ffb547', '#e0812a', '#ffe1a6'], ['#fff1c4', '#e9c579', '#ffffff'], ['#ffa2a8', '#e0727f', '#ffe0e2'], ['#c9b5ff', '#9a84e0', '#efe8ff']];
+  function star(r, ci = 0, rot = 0) {
+    const [c, d, l] = STAR_COLS[ci % STAR_COLS.length];
+    let p = '';
+    for (let i = 0; i < 5; i++) {
+      const a = rad(-90 + i * 72 + rot), b = rad(-90 + i * 72 + 36 + rot);
+      const ox = Math.cos(a) * r, oy = Math.sin(a) * r, ix = Math.cos(b) * r * .55, iy = Math.sin(b) * r * .55;
+      const cx = Math.cos(a - rad(10)) * r * .9, cy = Math.sin(a - rad(10)) * r * .9;
+      p += (i ? ' L' : 'M') + `${f(ox)} ${f(oy)} Q${f((ox + ix) / 2 * 1.08)} ${f((oy + iy) / 2 * 1.08)} ${f(ix)} ${f(iy)}`;
+    }
+    p += ' Z';
+    let creases = '';
+    for (let i = 0; i < 5; i++) { const a = rad(-90 + i * 72 + rot); creases += `M0 0 L${f(Math.cos(a) * r * .8)} ${f(Math.sin(a) * r * .8)} `; }
+    return `<path d="${p}" fill="${c}" stroke="${d}" stroke-width="${f(r * .12)}" stroke-linejoin="round"/>
+      <path d="${creases}" stroke="${d}" stroke-width="${f(r * .07)}" opacity=".55"/>
+      <circle cx="${f(-r * .18)}" cy="${f(-r * .2)}" r="${f(r * .22)}" fill="${l}" opacity=".9"/>`;
+  }
+
+  /* ---------- the jar of lights: base centre at the origin, glass with stars inside ---------- */
+  function jar(o = {}) {
+    const W = o.w || 150, H = o.h || 210, fill = o.fill ?? .72, seed = o.seed || 3;
+    const hw = W / 2, nw = W * .4;
+    const body = `M${-hw + 10} 0 C${-hw - 2} -4 ${-hw} -24 ${-hw} -40 L${-hw} ${-H + 56} C${-hw} ${-H + 34} ${-nw - 4} ${-H + 30} ${-nw} ${-H + 18} L${-nw} ${-H + 6} L${nw} ${-H + 6} L${nw} ${-H + 18} C${nw + 4} ${-H + 30} ${hw} ${-H + 34} ${hw} ${-H + 56} L${hw} -40 C${hw} -24 ${hw + 2} -4 ${hw - 10} 0 Z`;
+    const id = nid('jar');
+    /* stars packed from the bottom up to the fill line */
+    let rnd = seed; const R = () => (rnd = (rnd * 9301 + 49297) % 233280) / 233280;
+    const top = -H * fill, stars = [];
+    for (let row = 0, y = -16; y > top; row++, y -= 19) {
+      for (let x = -hw + 14 + (row % 2) * 11; x < hw - 10; x += 23) stars.push([x + (R() - .5) * 8, y + (R() - .5) * 6, 12 + R() * 5, Math.floor(R() * 5), R() * 72]);
+    }
+    const extra = o.extra || [];
+    return `<g>
+      <ellipse cx="0" cy="-${f(H * .45)}" rx="${f(W * 1.6)}" ry="${f(H * 1.1)}" fill="url(#jarHalo)"/>
+      <clipPath id="${id}"><path d="${body}"/></clipPath>
+      <path d="${body}" fill="#ffe2a0" opacity=".22"/>
+      <g clip-path="url(#${id})">
+        <ellipse cx="0" cy="${f(top * .55)}" rx="${f(hw * 1.1)}" ry="${f(-top * .7)}" fill="#fff0b8" opacity=".85" filter="url(#blur16)"/>
+        ${stars.map(s => `<g transform="translate(${f(s[0])} ${f(s[1])})">${star(s[2], s[3], s[4])}</g>`).join('')}
+        <ellipse cx="0" cy="${f(top * .5)}" rx="${f(hw * .7)}" ry="${f(-top * .45)}" fill="#fff6d0" opacity=".55" filter="url(#blur12)"/>
+        ${extra.join('')}
+        <path d="M${-hw + 14} ${-H + 70} C${-hw + 10} ${-H + 120} ${-hw + 12} -80 ${-hw + 20} -30" stroke="#fff" stroke-width="9" fill="none" opacity=".55" stroke-linecap="round"/>
+        <path d="M${-hw + 32} ${-H + 76} L${-hw + 32} ${-H + 110}" stroke="#fff" stroke-width="5" opacity=".5" stroke-linecap="round"/>
+        <path d="M${hw - 14} ${-H + 80} C${hw - 10} ${-H + 130} ${hw - 10} -90 ${hw - 18} -36" stroke="#fff6dc" stroke-width="4" fill="none" opacity=".4" stroke-linecap="round"/>
+      </g>
+      <path d="${body}" fill="none" stroke="#fff4d6" stroke-width="3" opacity=".75"/>
+      <rect x="${-nw - 6}" y="${-H}" width="${2 * nw + 12}" height="18" rx="7" fill="#f6e7c4" opacity=".9"/>
+      <rect x="${-nw - 6}" y="${-H}" width="${2 * nw + 12}" height="7" rx="3.5" fill="#fff" opacity=".7"/>
+      <ellipse cx="0" cy="-4" rx="${hw - 6}" ry="7" fill="#fff0c0" opacity=".5"/>
+    </g>`;
+  }
+
+  window.PO = { hand, arm, fizzaBody, kumaylBody, star, jar, underDrape };
+})();
+
+/* Baba: the children's father. Short dark beard, neat hair, cream thobe. Same construction as the children
+   (3/4 view facing right, head origin at the middle of the head, chin at about y = 156). */
+(function () {
+  const { brush, soft, rim, hold, nid, f, C } = ART;
+  const B = {
+    skin: '#f3c39c', skinSh: '#d99a78', skinDeep: '#b9725a', skinHi: '#ffe3c8', skinLine: '#b56f56',
+    hair: '#231713', hairHi: '#4d382d', hairLine: '#0c0705', beard: '#3a271e', beardHi: '#5e4536',
+    thobe: '#f4ece0', thobeSh: '#d8c9b4', thobeDeep: '#b9a78e', thobeLine: '#9c8a72'
+  };
+  const HEAD = 'M-94 -30 C-98 -100 -52 -146 10 -146 C70 -146 106 -104 106 -36 C106 -10 102 10 104 28 C106 58 96 88 76 108 C58 126 34 134 10 134 C-22 134 -52 120 -68 98 C-80 82 -86 62 -88 44 C-96 26 -94 0 -92 -30 Z';
+  const EAR = 'M-50 -2 C-66 -16 -92 -10 -92 16 C-92 42 -74 54 -54 44 Z';
+  const HAIR = 'M-96 30 C-108 -40 -88 -128 -10 -152 C56 -166 114 -128 114 -66 C114 -56 112 -50 108 -44 C100 -70 86 -86 64 -92 C46 -96 26 -96 8 -92 C-2 -102 -14 -106 -24 -104 C-30 -92 -40 -76 -44 -56 L-46 2 C-54 -8 -64 -12 -74 -10 C-84 -6 -90 10 -96 30 Z';
+  const BEARD = 'M-48 -6 C-46 22 -36 46 -18 60 C-2 72 16 78 30 80 L74 78 C88 68 98 48 104 22 C108 56 100 90 80 114 C62 134 36 146 10 146 C-22 146 -50 132 -64 110 C-72 94 -70 70 -60 50 C-54 34 -50 14 -48 -6 Z';
+  const MOUSTACHE = 'M16 82 C26 72 40 70 50 76 C58 70 72 70 84 78 C78 86 64 86 54 84 C42 88 28 88 16 82 Z';
+
+  function babaHead(o = {}) {
+    const look = o.look || [.4, .2], out = [];
+    const eid = nid('be'), hid = nid('bh');
+    out.push(hold(`<path d="${HEAD}" fill="x"/>`, B.skinLine));
+    out.push(`<path d="${HEAD}" fill="${B.skin}"/>`);
+    out.push(soft(HEAD, `<g filter="url(#blur12)"><ellipse cx="-90" cy="10" rx="30" ry="120" fill="${B.skinSh}" opacity=".7"/>
+      <path d="M-100 -60 C-40 -50 40 -50 120 -64 L120 -40 C40 -24 -40 -24 -100 -36 Z" fill="${B.skinSh}" opacity=".4"/></g>
+      <g filter="url(#blur8)"><ellipse cx="70" cy="-30" rx="26" ry="9" fill="${B.skinHi}" opacity=".6"/><ellipse cx="94" cy="20" rx="7" ry="14" fill="${B.skinHi}" opacity=".4"/>
+      <ellipse cx="-16" cy="40" rx="22" ry="12" fill="#e48a74" opacity=".35"/><ellipse cx="96" cy="36" rx="10" ry="10" fill="#e48a74" opacity=".3"/></g>`, 2));
+    out.push(hold(`<path d="${EAR}" fill="x"/>`, B.skinLine, 2));
+    out.push(`<clipPath id="${eid}"><path d="${EAR}"/></clipPath><path d="${EAR}" fill="${B.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-58 4 C-70 -2 -84 4 -84 18 C-84 32 -74 40 -62 36" fill="none" stroke="${B.skinSh}" stroke-width="9"/>
+      <ellipse cx="-52" cy="22" rx="10" ry="24" fill="${B.skinSh}" opacity=".8"/></g></g>`);
+    /* beard and moustache */
+    out.push(hold(`<path d="${BEARD}" fill="x"/>`, B.hairLine, 1.8));
+    out.push(`<path d="${BEARD}" fill="${B.beard}"/>`);
+    out.push(soft(BEARD, `<g filter="url(#blur6)">${brush([[-40, 60], [-20, 110], [20, 140], [70, 110]], 2, 14, 2, B.beardHi, 'opacity=".55"')}</g>
+      ${[[[-30, 70], [-26, 92], [-14, 110], [0, 120]], [[10, 120], [24, 130], [40, 130], [56, 120]], [[70, 96], [80, 86], [88, 70], [96, 56]], [[-60, 80], [-56, 100], [-46, 118], [-34, 130]]]
+        .map(c => brush(c, 1, 3, 1, B.beardHi, 'opacity=".5"')).join('')}`, 0));
+    /* mouth: a warm closed smile with a hint of lower lip, then the moustache over it */
+    const mo = 'M26 90 C38 92 60 92 76 88 C72 104 60 112 50 112 C38 112 30 104 26 90 Z', mid = nid('bm');
+    out.push(`<clipPath id="${mid}"><path d="${mo}"/></clipPath><path d="${mo}" fill="#5e1f1b"/>
+      <g clip-path="url(#${mid})"><path d="M24 86 L80 84 L78 96 C60 99 40 99 24 96 Z" fill="#fffaf2"/><ellipse cx="52" cy="114" rx="16" ry="7" fill="#c9675e"/></g>`);
+    out.push(hold(`<path d="${MOUSTACHE}" fill="x"/>`, B.hairLine, 1.4) + `<path d="${MOUSTACHE}" fill="${B.beard}"/>`);
+    /* hair */
+    out.push(hold(`<path d="${HAIR}" fill="x"/>`, B.hairLine, 2.2));
+    out.push(`<clipPath id="${hid}"><path d="${HAIR}"/></clipPath><path d="${HAIR}" fill="${B.hair}"/>`);
+    out.push(`<g clip-path="url(#${hid})"><g filter="url(#blur8)">${brush([[-80, -100], [-40, -146], [30, -150], [90, -112]], 6, 22, 6, B.hairHi, 'opacity=".8"')}</g>
+      ${[[[-60, -120], [-20, -140], [40, -136], [96, -90]], [[-80, -80], [-50, -116], [10, -128], [70, -112]], [[-30, -96], [10, -110], [60, -108], [104, -70]]]
+        .map((c, i) => brush(c, 1, i === 0 ? 4 : 3, 1, '#6b5244', 'opacity=".5"')).join('')}
+      ${brush([[-26, -150], [-20, -126], [-10, -110], [4, -96]], 1, 3, 1, B.hairLine, 'opacity=".7"')}</g>`);
+    /* brows, eyes, nose */
+    out.push(brush([[-40, -30], [-26, -42], [-4, -42], [10, -34]], 4, 10, 4, B.hair));
+    out.push(brush([[54, -38], [64, -46], [82, -46], [96, -36]], 4, 9, 3, B.hair));
+    for (const [x, y, sx] of [[-10, 4, 1], [74, 0, .62]]) {
+      const rx = 17 * sx, ry = 14, cid = nid('bey');
+      const wh = `M${f(x - rx)} ${y + 1} C${f(x - rx)} ${y - ry} ${f(x + rx)} ${y - ry} ${f(x + rx)} ${y} C${f(x + rx)} ${y + ry * .8} ${f(x - rx)} ${y + ry * .9} ${f(x - rx)} ${y + 1} Z`;
+      out.push(`<clipPath id="${cid}"><path d="${wh}"/></clipPath><path d="${wh}" fill="#fffaf2"/>
+        <g clip-path="url(#${cid})"><circle cx="${f(x + look[0] * rx * .45)}" cy="${f(y + 1 + look[1] * 4)}" r="10.5" fill="url(#irisG)"/><circle cx="${f(x + look[0] * rx * .45)}" cy="${f(y + 1 + look[1] * 4)}" r="5.2" fill="${C.irisDeep}"/>
+        <rect x="${x - 20}" y="${y - 16}" width="40" height="8" fill="#5a3a2a" opacity=".22"/></g>
+        <circle cx="${f(x + look[0] * rx * .45 - 3)}" cy="${f(y - 2 + look[1] * 4)}" r="2.6" fill="#fff"/>`);
+      out.push(brush([[x - rx - 3, y + 2], [x - rx * .5, y - ry - 2], [x + rx * .5, y - ry - 2], [x + rx + 3, y - 1]], 2, 5.5, 2.5, C.lid));
+      out.push(brush([[x - rx * .7, y - ry - 8], [x - rx * .2, y - ry - 12], [x + rx * .3, y - ry - 12], [x + rx * .8, y - ry - 8]], 1, 2, 1, B.skinDeep, 'opacity=".45"'));
+      if (o.smileEyes) out.push(brush([[x - rx * .7, y + ry + 3], [x - rx * .2, y + ry + 6], [x + rx * .3, y + ry + 6], [x + rx * .8, y + ry + 2]], 1, 2.4, 1, B.skinDeep, 'opacity=".5"'));
+    }
+    out.push(soft(HEAD, `<path d="M52 -6 C56 14 58 34 60 50 L46 54 C46 34 46 14 44 -6 Z" fill="${B.skinSh}" opacity=".8"/>`, 4));
+    out.push(brush([[60, 30], [68, 44], [76, 50], [70, 56]], 1.5, 4, 1.5, B.skinDeep, 'opacity=".6"'));
+    out.push(brush([[48, 56], [54, 60], [62, 60], [68, 56]], 1.5, 3.5, 1.5, B.skinDeep, 'opacity=".55"'));
+    out.push(`<ellipse cx="64" cy="40" rx="5" ry="4" fill="${B.skinHi}" opacity=".8"/>`);
+    if (o.warm) out.push(soft(HEAD, `<ellipse cx="${o.warmX ?? 140}" cy="40" rx="140" ry="130" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .3}"`));
+    return out.join('');
+  }
+
+  /* body: cream thobe; neck, shoulders and chest. Body origin = head origin. */
+  function babaBody(o = {}) {
+    return `<g transform="translate(0 -14)">${babaBodyInner(o)}</g>`;
+  }
+  function babaBodyInner(o) {
+    const neck = 'M-48 110 L-50 200 L62 200 L60 110 Z';
+    const thobe = 'M-150 244 C-170 304 -176 460 -172 700 L156 700 C160 470 156 310 136 238 C118 214 90 198 62 188 C56 210 34 222 6 222 C-22 222 -42 208 -50 190 C-84 202 -122 220 -150 244 Z';
+    const out = [];
+    out.push(hold(`<path d="${neck}" fill="x"/>`, B.skinLine) + `<path d="${neck}" fill="${B.skin}"/>`);
+    out.push(soft(neck, `<rect x="-50" y="110" width="110" height="60" fill="${B.skinDeep}" opacity=".7"/><rect x="-50" y="110" width="30" height="110" fill="${B.skinSh}"/>`, 8));
+    /* arms passed in head-origin space are merged into the thobe under one outline (the body sits 14 higher) */
+    /* raised arms (o.raised) are drawn whole, under the thobe, so one outline runs from the shoulder to the wrist */
+    const arms = o.arms || [], raised = o.raised || [], inArm = svg => `<g transform="translate(0 14)">${svg}</g>`;
+    out.push(hold(`<path d="${thobe}" fill="x"/>` + arms.map(a => inArm(a.upperParts)).join('') + raised.map(a => inArm(a.wholeParts)).join(''), B.thobeLine));
+    for (const a of raised) out.push(inArm(a.wholeFill + a.bend));
+    out.push(`<path d="${thobe}" fill="${B.thobe}"/>`);
+    out.push(soft(thobe, `<path d="M-190 260 C-160 380 -150 520 -158 720 L-200 720 Z" fill="${B.thobeSh}"/>
+      <path d="M60 260 C90 300 110 400 116 560 L150 560 L140 260 Z" fill="#fffaf2" opacity=".6"/>`, 16));
+    for (const a of arms) out.push(inArm(a.upperFill + a.innerEdge));
+    /* the sleeve seam round a raised shoulder */
+    for (const a of raised) out.push(brush([[-112, 204], [-130, 224], [-146, 256], [-152, 292]], .8, 3, .8, B.thobeLine, 'opacity=".5"'));
+    out.push(brush([[-52, 186], [-38, 218], [46, 224], [64, 184]], 9, 11, 9, B.thobe) + brush([[-52, 186], [-38, 218], [46, 224], [64, 184]], 1.5, 2.4, 1.5, B.thobeLine, 'opacity=".7"'));
+    out.push(brush([[-53, 192], [-39, 226], [47, 232], [65, 190]], 1.2, 2, 1.2, B.thobeLine, 'opacity=".55"'));
+    out.push(brush([[8, 234], [10, 290], [11, 340], [12, 380]], 3, 3, 3, B.thobeDeep, 'opacity=".5"'));
+    out.push(`<circle cx="17" cy="268" r="4.5" fill="${B.thobeDeep}" opacity=".7"/><circle cx="18" cy="304" r="4.5" fill="${B.thobeDeep}" opacity=".7"/>`);
+    if (o.warm) out.push(soft(thobe, `<ellipse cx="${o.warmX ?? 160}" cy="360" rx="200" ry="200" fill="${C.warmCloth}"/>`, 24, `opacity="${o.warm * .25}"`));
+    return out.join('');
+  }
+
+  window.BA = { babaHead, babaBody, B };
+})();
+
+/* Faces, version 2: replaces the heads in chars.js and baba.js.
+   3/4 view facing right (near side on the left); head origin at the middle of the head.
+   Kids: chin at y = 124, eye line at y = 24. Baba: chin (beard) at y = 156, eye line at y = 4. */
+(function () {
+  const { brush, soft, hold, nid, f, C } = ART;
+
+  /* ---------- eyes ---------- */
+  /* x, y: centre; rx, ry: opening; side: 1 = the outer corner is on the right (far eye), -1 = on the left (near eye) */
+  function eye(x, y, rx, ry, look, o = {}) {
+    const side = o.side || 1, cid = nid('ey'), lid = o.lid || C.lid;
+    if (o.closed) {
+      return brush([[x - rx - 2, y + 2], [x - rx * .45, y + ry * .62], [x + rx * .45, y + ry * .62], [x + rx + 2, y + 2]], 2, Math.max(4, ry * .2), 2, lid);
+    }
+    /* opening: fuller at the bottom, a little flatter on top towards the outer corner */
+    const xo = x + rx * side, xi = x - rx * side;
+    const open = `M${f(xi)} ${f(y + ry * .1)} C${f(xi)} ${f(y - ry * .85)} ${f(x + rx * .25 * side)} ${f(y - ry * 1.02)} ${f(xo - rx * .12 * side)} ${f(y - ry * .62)}
+      C${f(xo + rx * .05 * side)} ${f(y - ry * .4)} ${f(xo)} ${f(y - ry * .1)} ${f(xo)} ${f(y + ry * .12)}
+      C${f(xo)} ${f(y + ry * .82)} ${f(x + rx * .4 * side)} ${f(y + ry)} ${f(x)} ${f(y + ry)} C${f(x - rx * .55 * side)} ${f(y + ry)} ${f(xi)} ${f(y + ry * .75)} ${f(xi)} ${f(y + ry * .1)} Z`;
+    const ir = (o.iris || .8) * ry, ix = x + look[0] * (rx - ir * .55 * (rx / ry)), iy = y + ry * .06 + look[1] * ry * .2;
+    const sx = Math.min(1, rx / ry * 1.15);
+    const out = [`<clipPath id="${cid}"><path d="${open}"/></clipPath>`, `<path d="${open}" fill="#fffdf8"/>`];
+    out.push(`<g clip-path="url(#${cid})">
+      <ellipse cx="${f(ix)}" cy="${f(iy)}" rx="${f(ir * sx)}" ry="${f(ir)}" fill="url(#iris2)"/>
+      <ellipse cx="${f(ix)}" cy="${f(iy + ir * .05)}" rx="${f(ir * .5 * sx)}" ry="${f(ir * .52)}" fill="#1c0d07"/>
+      <ellipse cx="${f(ix)}" cy="${f(iy + ir * .62)}" rx="${f(ir * .62 * sx)}" ry="${f(ir * .28)}" fill="#c9874f" opacity=".45"/>
+      <path d="${open}" fill="none" stroke="${lid}" stroke-opacity=".16" stroke-width="${f(ry * .36)}" transform="translate(0 ${f(-ry * .2)})"/>
+    </g>`);
+    out.push(`<ellipse cx="${f(ix - ir * .34 * sx)}" cy="${f(iy - ir * .4)}" rx="${f(ir * .3 * sx)}" ry="${f(ir * .3)}" fill="#fff"/>`);
+    out.push(`<circle cx="${f(ix + ir * .36 * sx)}" cy="${f(iy + ir * .36)}" r="${f(ir * .12)}" fill="#fff" opacity=".9"/>`);
+    /* upper lid: heaviest over the outer half, a short flick past the outer corner */
+    const top = [[xi - 1 * side, y + ry * .12], [xi, y - ry * .95], [x + rx * .35 * side, y - ry * 1.12], [xo + rx * .12 * side, y - ry * .3]];
+    out.push(brush(top, ry * .1, ry * .2, ry * .24, lid));
+    if (o.flick) out.push(brush([[xo - rx * .04 * side, y - ry * .42], [xo + rx * .14 * side, y - ry * .46], [xo + rx * .26 * side, y - ry * .56], [xo + rx * .36 * side, y - ry * .74]], ry * .16, ry * .1, 1, lid));
+    if (o.lashes) {
+      out.push(brush([[xo - rx * .2 * side, y - ry * .78], [xo - rx * .12 * side, y - ry * .95], [xo - rx * .02 * side, y - ry * 1.06], [xo + rx * .1 * side, y - ry * 1.16]], ry * .12, ry * .07, .6, lid));
+    }
+    /* lower lid hint and a soft crease above */
+    out.push(brush([[x - rx * .5 * side, y + ry * 1.04], [x - rx * .1 * side, y + ry * 1.12], [x + rx * .3 * side, y + ry * 1.1], [x + rx * .62 * side, y + ry * .96]], .6, ry * .07, .6, C.skinDeep, 'opacity=".4"'));
+    if (o.crease !== false) out.push(brush([[x - rx * .5 * side, y - ry * 1.28], [x - rx * .05 * side, y - ry * 1.42], [x + rx * .45 * side, y - ry * 1.38], [x + rx * .8 * side, y - ry * 1.1]], .5, ry * .055, .5, C.skinDeep, 'opacity=".32"'));
+    if (o.happy) out.push(brush([[x - rx * .8, y + ry * 1.18], [x - rx * .3, y + ry * .98], [x + rx * .3, y + ry * .98], [x + rx * .8, y + ry * 1.18]], .5, ry * .1, .5, C.skinDeep, 'opacity=".35"'));
+    return out.join('');
+  }
+
+  /* ---------- mouths (centre x, y; s = scale) ---------- */
+  function mouthOpen(x, y, s, o = {}) {
+    const id = nid('mo'), L = x - 20 * s, R = x + 18 * s;
+    const d = `M${f(L)} ${f(y - 4 * s)} C${f(x - 8 * s)} ${f(y - 1 * s)} ${f(x + 8 * s)} ${f(y - 2 * s)} ${f(R)} ${f(y - 6 * s)} C${f(R + 1 * s)} ${f(y + 10 * s)} ${f(x + 8 * s)} ${f(y + 20 * s)} ${f(x - 2 * s)} ${f(y + 20 * s)} C${f(x - 13 * s)} ${f(y + 20 * s)} ${f(L - 2 * s)} ${f(y + 8 * s)} ${f(L)} ${f(y - 4 * s)} Z`;
+    return `<clipPath id="${id}"><path d="${d}"/></clipPath><path d="${d}" fill="#6a2320"/>
+      <g clip-path="url(#${id})"><ellipse cx="${f(x - 2 * s)}" cy="${f(y + 21 * s)}" rx="${f(14 * s)}" ry="${f(9 * s)}" fill="#e2716b"/>
+        ${o.teeth === false ? '' : `<path d="M${f(L)} ${f(y - 6 * s)} L${f(R)} ${f(y - 8 * s)} L${f(R - 1 * s)} ${f(y + 1 * s)} C${f(x + 6 * s)} ${f(y + 4 * s)} ${f(x - 8 * s)} ${f(y + 4 * s)} ${f(L + 1 * s)} ${f(y + 2 * s)} Z" fill="#fffaf3"/>`}</g>
+      ${brush([[L - 4 * s, y - 7 * s], [L - 2 * s, y - 5 * s], [L - 1 * s, y - 3 * s], [L + 1 * s, y - 2 * s]], .6, 2.4 * s, .6, C.skinDeep, 'opacity=".55"')}
+      ${brush([[x - 8 * s, y + 25 * s], [x - 3 * s, y + 27 * s], [x + 3 * s, y + 27 * s], [x + 8 * s, y + 25 * s]], .5, 2 * s, .5, C.skinDeep, 'opacity=".3"')}`;
+  }
+  function mouthSmile(x, y, s) {
+    return brush([[x - 21 * s, y - 3 * s], [x - 10 * s, y + 9 * s], [x + 8 * s, y + 9 * s], [x + 17 * s, y - 4 * s]], 1.5, 4.6 * s, 1.5, '#7a2b26') +
+      brush([[x - 25 * s, y - 6 * s], [x - 24 * s, y - 4 * s], [x - 22 * s, y - 2 * s], [x - 20 * s, y - 1 * s]], .6, 2.4 * s, .6, C.skinDeep, 'opacity=".55"') +
+      brush([[x - 7 * s, y + 15 * s], [x - 2 * s, y + 17 * s], [x + 3 * s, y + 17 * s], [x + 7 * s, y + 15 * s]], .5, 2 * s, .5, C.skinDeep, 'opacity=".3"');
+  }
+
+  /* ---------- children ---------- */
+  const HEAD_K = 'M-116 -6 C-118 -84 -66 -134 -2 -134 C62 -134 106 -94 107 -34 C108 -12 103 2 105 18 C110 46 104 78 84 99 C67 116 49 124 31 124 C6 124 -20 116 -38 100 C-48 90 -54 78 -56 66 C-70 64 -86 58 -96 46 C-110 30 -116 12 -116 -6 Z';
+  function kidSkin(clip, o, extra = '') {
+    const g = nid('sk');
+    return `<radialGradient id="${g}" gradientUnits="userSpaceOnUse" cx="56" cy="16" r="190"><stop offset="0" stop-color="#fbd6b5"/><stop offset=".5" stop-color="${C.skin}"/><stop offset="1" stop-color="#e2a886"/></radialGradient>
+      <path d="${clip}" fill="url(#${g})"/>` +
+      soft(clip, `<path d="M-130 -60 C-110 20 -80 80 -20 120 L-140 140 Z" fill="${C.skinSh}" opacity=".55"/>
+        <path d="M-60 110 C-10 132 60 132 110 90 L120 160 L-80 160 Z" fill="${C.skinSh}" opacity=".5"/>${extra}`, 8) +
+      soft(clip, `<ellipse cx="-14" cy="64" rx="22" ry="12" fill="#f2907e" opacity="${o.girl ? .5 : .36}"/><ellipse cx="96" cy="60" rx="9" ry="10" fill="#f2907e" opacity="${o.girl ? .45 : .3}"/>
+        <ellipse cx="66" cy="-36" rx="30" ry="12" fill="#fff0de" opacity=".55"/><ellipse cx="90" cy="34" rx="7" ry="13" fill="#fff0de" opacity=".45"/>`, 6);
+  }
+  function kidFeatures(o, girl) {
+    const look = o.look || [.5, .1], bx = o.brows || 0, out = [];
+    const closed = o.eyes === 'closed';
+    out.push(brush([[-18, -16 - bx], [-6, -25 - bx], [12, -27 - bx], [28, -21 - bx]], 2, girl ? 5.4 : 7.4, 2.4, C.hair, 'opacity=".9"'));
+    out.push(brush([[66, -22 - bx], [74, -27 - bx], [86, -27 - bx], [94, -20 - bx]], 2, girl ? 4.6 : 6.4, 1.6, C.hair, 'opacity=".9"'));
+    out.push(eye(6, 24, 23, 27, look, { side: -1, flick: girl, lashes: girl, closed, iris: .78 }));
+    out.push(eye(81, 21, 14, 26, look, { side: 1, flick: girl, lashes: girl, closed, iris: .78 }));
+    /* nose: just the tip, with a soft shadow on the underside and a highlight */
+    out.push(brush([[50, 56], [55, 61], [63, 62], [69, 57]], .8, 3.6, .8, C.skinDeep, 'opacity=".42"'));
+    out.push(`<ellipse cx="60" cy="51" rx="4.2" ry="3.2" fill="#fff0de" opacity=".85"/>`);
+    out.push((o.mouth || 'smile') === 'open' ? mouthOpen(52, 84, girl ? .9 : 1) : mouthSmile(52, 84, girl ? .9 : 1));
+    return out.join('');
+  }
+  const glow = (clip, o, dx = 0) => o.warm ? soft(clip, `<ellipse cx="${(o.warmX ?? 150) + dx}" cy="80" rx="140" ry="130" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .28}"`) : '';
+
+  function kumaylHead(o = {}) {
+    const out = [];
+    const ear = 'M-46 12 C-52 -2 -74 -2 -80 16 C-86 36 -76 58 -58 56 C-51 54 -47 48 -45 42 Z';
+    const hair = 'M-90 54 C-116 36 -126 -4 -122 -40 C-116 -110 -58 -154 6 -152 C70 -150 116 -110 119 -54 C120 -42 118 -32 113 -24 C106 -28 100 -29 93 -27 C86 -38 78 -48 67 -52 C64 -43 59 -37 51 -33 C44 -45 36 -55 25 -60 C21 -51 14 -47 5 -45 C-5 -54 -15 -58 -26 -56 C-36 -50 -41 -38 -43 -22 C-45 -12 -45 -2 -43 8 C-49 2 -57 -6 -65 -8 C-77 -10 -88 -4 -93 8 C-99 24 -98 40 -90 54 Z';
+    const hairCol = '#3b2a22', hairSh = '#24170f', hairHi = '#7a5c4a';
+    out.push(hold(`<path d="${HEAD_K}" fill="x"/>`, C.skinLine, 1.8));
+    /* the hair casts a soft shadow across the forehead */
+    out.push(kidSkin(HEAD_K, o, `<path d="${hair}" transform="translate(4 12)" fill="${C.skinSh}" opacity=".75"/>`));
+    out.push(hold(`<path d="${ear}" fill="x"/>`, C.skinLine, 1.6));
+    const eid = nid('er');
+    out.push(`<clipPath id="${eid}"><path d="${ear}"/></clipPath><path d="${ear}" fill="${C.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-54 14 C-62 6 -76 10 -76 24 C-76 38 -68 46 -58 44" fill="none" stroke="${C.skinSh}" stroke-width="7"/>
+      <ellipse cx="-46" cy="28" rx="8" ry="22" fill="${C.skinSh}" opacity=".8"/><ellipse cx="-74" cy="20" rx="5" ry="12" fill="#fff0de" opacity=".5"/></g></g>`);
+    out.push(hold(`<path d="${hair}" fill="x"/>`, '#24160f', 1.4));
+    const hid = nid('hr');
+    out.push(`<clipPath id="${hid}"><path d="${hair}"/></clipPath><path d="${hair}" fill="${hairCol}"/>
+      <g clip-path="url(#${hid})">
+        <g filter="url(#blur8)"><path d="M-130 -10 C-124 30 -110 50 -90 60 L-140 70 Z" fill="${hairSh}"/><path d="M-20 -40 C20 -20 70 -20 120 -30 L120 0 L-20 0 Z" fill="${hairSh}" opacity=".7"/></g>
+        <g filter="url(#blur4)">${brush([[-96, -86], [-62, -128], [0, -138], [66, -118]], 4, 15, 4, hairHi, 'opacity=".85"')}</g>
+        ${[[[-90, -70], [-60, -116], [0, -132], [56, -116]], [[-40, -118], [10, -136], [70, -118], [104, -70]], [[-70, -40], [-40, -90], [20, -104], [74, -70]]]
+          .map((c, i) => brush(c, .6, i === 1 ? 3.2 : 2.6, .6, i === 2 ? hairSh : '#9a7a66', `opacity="${i === 2 ? .55 : .5}"`)).join('')}
+        ${[[[-20, -96], [20, -96], [60, -76], [90, -34]], [[-30, -80], [0, -84], [30, -70], [50, -40]], [[-36, -66], [-20, -70], [0, -62], [12, -50]]].map(c => brush(c, .5, 2.4, .5, hairSh, 'opacity=".55"')).join('')}
+      </g>`);
+    out.push(kidFeatures(o, false));
+    out.push(glow(HEAD_K, o));
+    if (o.rimL) out.push(ART.rim(hair, 4, 0, '#8f9fe0', o.rimL * .5, 2));
+    return out.join('');
+  }
+
+  function fizzaHead(o = {}) {
+    o = Object.assign({ mouth: 'open', girl: true }, o);
+    const out = [];
+    const hood = 'M-130 -2 C-132 -92 -70 -154 4 -154 C78 -154 126 -108 127 -36 C128 2 124 34 120 62 C114 106 82 136 38 146 C-2 152 -42 146 -78 126 C-114 104 -130 56 -130 -2 Z';
+    const face = 'M-74 -40 C-52 -72 0 -82 52 -78 C88 -74 105 -50 107 -24 C108 -6 103 4 105 20 C110 48 104 78 84 99 C67 116 49 124 31 124 C4 124 -26 114 -48 98 C-66 82 -77 52 -79 20 C-80 -4 -80 -24 -74 -40 Z';
+    const cap = 'M-92 -24 C-62 -72 0 -86 54 -82 C92 -78 110 -52 114 -20 L112 -6 C104 -38 86 -62 52 -66 C0 -70 -54 -58 -86 -8 Z';
+    const hid = nid('hd');
+    out.push(hold(`<path d="${hood}" fill="x"/>`, C.scarfLine, 1.8));
+    out.push(`<clipPath id="${hid}"><path d="${hood}"/></clipPath><path d="${hood}" fill="${C.scarf}"/>`);
+    out.push(`<g clip-path="url(#${hid})">
+      <g filter="url(#blur12)"><path d="M-150 -20 C-136 70 -80 140 20 160 L-160 180 Z" fill="${C.scarfSh}" opacity=".9"/>
+        <path d="M-40 110 C0 140 60 140 120 90 L130 170 L-60 170 Z" fill="${C.scarfSh}" opacity=".8"/></g>
+      <g filter="url(#blur8)"><path d="M-80 -150 C10 -166 104 -126 122 -44 C96 -104 20 -136 -80 -126 Z" fill="${C.scarfHi}" opacity=".95"/></g>
+      <g filter="url(#blur2)">
+        ${brush([[-116, 20], [-108, 70], [-84, 110], [-48, 134]], 1.5, 5, 1.5, C.scarfDeep, 'opacity=".3"')}
+        ${brush([[-104, -72], [-120, -30], [-122, 10], [-114, 50]], 1.5, 4.5, 1.5, C.scarfDeep, 'opacity=".22"')}
+        ${brush([[-10, 128], [10, 136], [40, 134], [70, 124]], 1.5, 4, 1.5, C.scarfDeep, 'opacity=".25"')}</g>
+    </g>`);
+    /* the fabric edge around the face: a darker inner rim so the face sits inside the hijab */
+    out.push(`<path d="${face}" fill="none" stroke="${C.scarfDeep}" stroke-width="9" opacity=".35"/>`);
+    out.push(hold(`<path d="${face}" fill="x"/>`, C.scarfLine, 1.4));
+    out.push(kidSkin(face, o, `<path d="M-100 -70 C-50 -100 70 -104 130 -60 L130 -26 C64 -64 -40 -66 -100 -20 Z" fill="${C.skinSh}" opacity=".9"/>`));
+    out.push(`<path d="${cap}" fill="${C.cap}"/>`);
+    out.push(soft(cap, `<path d="M-100 -4 C-60 -54 0 -68 60 -62 C92 -56 108 -40 120 -18 L120 20 L-100 20 Z" fill="#d9ccf2" opacity=".85"/>`, 3));
+    out.push(kidFeatures(o, true));
+    out.push(glow(face, o) + glow(hood, o, 30));
+    if (o.rimL) out.push(ART.rim(hood, 6, 2, C.moon, o.rimL * .6, 2));
+    if (o.rimR) out.push(ART.rim(hood, -6, 2, C.moon, o.rimR * .6, 2));
+    return out.join('');
+  }
+
+  /* ---------- Baba ---------- */
+  function babaHead(o = {}) {
+    const B = BA.B, look = o.look || [.4, .2], out = [];
+    const head = 'M-102 -26 C-104 -100 -54 -146 8 -146 C68 -146 106 -104 108 -42 C109 -16 104 -2 106 14 C110 44 106 78 90 102 C74 124 48 136 22 136 C-8 136 -36 126 -52 108 C-60 98 -64 86 -66 74 C-80 68 -92 56 -98 40 C-104 20 -104 -4 -102 -26 Z';
+    const ear = 'M-48 0 C-56 -14 -80 -12 -86 8 C-92 32 -80 56 -60 54 C-54 52 -50 46 -48 40 Z';
+    const hair = 'M-94 34 C-110 10 -116 -40 -108 -76 C-96 -128 -46 -160 14 -158 C72 -156 112 -120 114 -66 C115 -54 113 -46 110 -40 C102 -64 88 -84 62 -92 C40 -98 14 -97 -6 -92 C-22 -88 -34 -78 -40 -64 C-44 -50 -44 -30 -44 -12 C-50 -16 -60 -18 -68 -14 C-82 -10 -90 4 -94 34 Z';
+    const beard = 'M-44 -10 C-44 16 -38 40 -22 58 C-6 74 16 82 32 86 L80 84 C90 74 98 60 104 40 C108 66 104 94 90 114 C74 138 50 150 22 150 C-10 150 -38 136 -54 114 C-62 102 -64 90 -64 78 C-56 60 -48 30 -44 -10 Z';
+    const moustache = 'M26 88 C36 79 48 77 57 82 C66 77 79 79 88 88 C80 93 68 94 57 91 C45 95 33 94 26 88 Z';
+    const beardCol = '#4a3428', beardHi = '#7a5c4a', beardSh = '#2c1d15';
+    out.push(hold(`<path d="${head}" fill="x"/>`, B.skinLine, 1.8));
+    const g = nid('bsk');
+    out.push(`<radialGradient id="${g}" gradientUnits="userSpaceOnUse" cx="56" cy="0" r="190"><stop offset="0" stop-color="#f0bc96"/><stop offset=".5" stop-color="${B.skin}"/><stop offset="1" stop-color="#c88a66"/></radialGradient><path d="${head}" fill="url(#${g})"/>`);
+    out.push(soft(head, `<path d="M-120 -70 C-100 20 -80 80 -40 130 L-130 140 Z" fill="${B.skinSh}" opacity=".55"/>
+      <path d="${hair}" transform="translate(4 12)" fill="${B.skinSh}" opacity=".7"/>
+      <ellipse cx="70" cy="-44" rx="30" ry="12" fill="#ffe0c6" opacity=".55"/><ellipse cx="94" cy="18" rx="8" ry="16" fill="#ffe0c6" opacity=".4"/>
+      <ellipse cx="6" cy="40" rx="22" ry="11" fill="#de8a72" opacity=".3"/><ellipse cx="98" cy="40" rx="8" ry="9" fill="#de8a72" opacity=".25"/>`, 8));
+    out.push(hold(`<path d="${ear}" fill="x"/>`, B.skinLine, 1.6));
+    const eid = nid('ber');
+    out.push(`<clipPath id="${eid}"><path d="${ear}"/></clipPath><path d="${ear}" fill="${B.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-56 6 C-64 -2 -78 2 -78 18 C-78 34 -70 44 -60 42" fill="none" stroke="${B.skinSh}" stroke-width="8"/>
+      <ellipse cx="-48" cy="24" rx="8" ry="22" fill="${B.skinSh}" opacity=".8"/></g></g>`);
+    /* beard: short and trimmed, soft where it thins out on the cheek, fuller at the chin */
+    const bid = nid('bb'), bg = nid('bg');
+    out.push(`<linearGradient id="${bg}" gradientUnits="userSpaceOnUse" x1="10" y1="20" x2="30" y2="130"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff"/></linearGradient>
+      <mask id="${bid}m" maskUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400"><path d="${beard}" fill="url(#${bg})"/></mask>
+      <clipPath id="${bid}"><path d="${beard}"/></clipPath>
+      <g mask="url(#${bid}m)"><path d="${beard}" fill="${beardCol}"/>
+      <g clip-path="url(#${bid})"><g filter="url(#blur6)">${brush([[-44, 90], [-14, 130], [40, 140], [92, 104]], 3, 14, 3, beardHi, 'opacity=".5"')}
+        <path d="M-80 124 C-40 172 60 172 110 116 L120 180 L-90 180 Z" fill="${beardSh}" opacity=".55"/></g>
+        ${Array.from({ length: 46 }, (_, i) => { const a = i * 2.39996, r = 14 + (i * 37) % 66, x = 22 + Math.cos(a) * r, y = 104 + Math.sin(a) * r * .5; return brush([[x, y], [x + .6, y + 2.5], [x + 1.2, y + 5], [x + 1.4, y + 7.5]], .4, 1.8, .3, i % 3 ? beardHi : beardSh, 'opacity=".55"'); }).join('')}
+      </g></g>`);
+    out.push(`<path d="M-64 78 C-62 92 -56 104 -54 114 C-38 136 -10 150 22 150 C50 150 74 138 90 114 C104 94 108 66 104 40" fill="none" stroke="${beardSh}" stroke-width="2.4" opacity=".6"/>`);
+    /* mouth: a warm smile with the upper teeth showing, under the moustache */
+    const mo = 'M35 96 C47 100 68 100 82 94 C78 107 68 113 58 113 C47 113 39 107 35 96 Z', mid = nid('bm');
+    out.push(`<clipPath id="${mid}"><path d="${mo}"/></clipPath><path d="${mo}" fill="#5e1f1b"/>
+      <g clip-path="url(#${mid})"><path d="M32 92 L86 90 L84 101 C66 104 47 104 32 101 Z" fill="#fffaf2"/><ellipse cx="58" cy="115" rx="14" ry="6" fill="#c9675e"/></g>`);
+    out.push(hold(`<path d="${moustache}" fill="x"/>`, beardSh, 1) + `<path d="${moustache}" fill="${beardCol}"/>`);
+    out.push(brush([[34, 84], [44, 81], [52, 82], [57, 85]], .5, 2.2, .5, beardHi, 'opacity=".6"') + brush([[60, 85], [68, 81], [78, 82], [86, 87]], .5, 2, .5, beardHi, 'opacity=".5"'));
+    /* hair: short, side part on the near side, volume swept towards the face */
+    const hid = nid('bh');
+    out.push(`<clipPath id="${hid}"><path d="${hair}"/></clipPath><path d="${hair}" fill="#2e211b"/>
+      <g clip-path="url(#${hid})"><g filter="url(#blur6)">${brush([[-90, -92], [-50, -146], [30, -152], [96, -112]], 5, 18, 5, '#5f493c', 'opacity=".9"')}
+        <path d="M-120 0 C-110 -30 -100 -50 -96 -60 L-130 -60 Z" fill="#160d09" opacity=".7"/></g>
+        ${[[[-34, -150], [10, -150], [70, -132], [106, -86]], [[-40, -128], [6, -134], [56, -118], [90, -88]], [[-44, -106], [-6, -112], [40, -104], [70, -90]], [[-50, -146], [-80, -130], [-100, -100], [-104, -60]]]
+          .map((c, i) => brush(c, .5, i === 0 ? 3 : 2.4, .5, '#8a6c5a', 'opacity=".5"')).join('')}
+        ${brush([[-46, -156], [-42, -134], [-40, -114], [-36, -96]], .5, 2.6, .5, '#0c0705', 'opacity=".55"')}</g>`);
+    /* brows, eyes, nose */
+    out.push(brush([[-26, -26], [-12, -34], [8, -35], [24, -29]], 2.5, 7.5, 3, '#2e211b'));
+    out.push(brush([[64, -31], [73, -37], [86, -36], [97, -29]], 2.5, 6.5, 2, '#2e211b'));
+    out.push(eye(4, 6, 17, 14, look, { side: -1, iris: .8, lid: '#2a1a12', crease: true, happy: o.smileEyes }));
+    out.push(eye(81, 3, 11, 13.5, look, { side: 1, iris: .8, lid: '#2a1a12', crease: true, happy: o.smileEyes }));
+    out.push(soft(head, `<path d="M54 0 C57 16 59 30 60 44 L50 46 C50 30 50 16 48 0 Z" fill="${B.skinSh}" opacity=".45"/>`, 4));
+    out.push(brush([[54, 52], [60, 58], [68, 58], [74, 52]], .6, 3.4, .6, B.skinDeep, 'opacity=".5"'));
+    out.push(brush([[70, 34], [74, 42], [75, 48], [72, 52]], .5, 2.6, .5, B.skinDeep, 'opacity=".45"'));
+    out.push(`<ellipse cx="66" cy="45" rx="5" ry="4" fill="#ffe0c6" opacity=".8"/>`);
+    if (o.warm) out.push(soft(head, `<ellipse cx="${o.warmX ?? 150}" cy="40" rx="150" ry="140" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .26}"`));
+    return out.join('');
+  }
+
+  /* ---------- version 3: Kumayl and Baba built on Fizza's face (same oval, eyes, nose, mouth, blush) ---------- */
+  const oldEye = ART.eye, oldMouth = ART.mouth;
+  function fizzaStyleFeatures(o, kind) {
+    const look = o.look || [.55, .1], out = [], bx = o.brows || 0, closed = o.eyes === 'closed';
+    if (kind === 'boy') {
+      out.push(brush([[-50, -36 - bx], [-38, -48 - bx], [-16, -50 - bx], [-2, -42 - bx]], 3, 8.5, 3, C.hair, 'opacity=".95"'));
+      out.push(brush([[48, -42 - bx], [58, -50 - bx], [74, -50 - bx], [86, -42 - bx]], 3, 7.5, 2, C.hair, 'opacity=".95"'));
+      out.push(oldEye(-22, 8, 1, 1, look, false, { outerLeft: true, closed }));
+      out.push(oldEye(68, 6, 1, .66, look, false, { closed }));
+      out.push(brush([[46, 32], [52, 40], [52, 48], [44, 52]], 1.5, 4.5, 1.5, C.skinDeep, 'opacity=".55"'));
+      out.push(`<circle cx="41" cy="40" r="3.5" fill="${C.skinHi}" opacity=".8"/>`);
+      out.push(oldMouth(40, 72, 1.02, o.mouth || 'smile'));
+    } else {
+      const B = BA.B;
+      out.push(brush([[-44, -42 - bx], [-30, -54 - bx], [-6, -56 - bx], [10, -46 - bx]], 3.5, 11, 4, '#2e211b'));
+      out.push(brush([[54, -50 - bx], [64, -58 - bx], [82, -58 - bx], [96, -48 - bx]], 3.5, 9.5, 2.5, '#2e211b'));
+      out.push(oldEye(-16, 2, .8, 1, look, false, { outerLeft: true, closed }));
+      out.push(oldEye(70, 0, .8, .64, look, false, { closed }));
+      if (o.smileEyes) out.push(brush([[-36, 30], [-24, 36], [-8, 36], [4, 30]], .6, 2.6, .6, B.skinDeep, 'opacity=".4"') + brush([[60, 28], [66, 33], [74, 33], [80, 28]], .6, 2.2, .6, B.skinDeep, 'opacity=".35"'));
+      out.push(brush([[48, 28], [57, 40], [57, 50], [46, 55]], 1.6, 5, 1.6, B.skinDeep, 'opacity=".55"'));
+      out.push(`<circle cx="44" cy="40" r="4" fill="#ffe0c6" opacity=".8"/>`);
+    }
+    return out.join('');
+  }
+  function skinShade3(clip, blushOp, extra = '') {
+    return soft(clip, `
+      <g filter="url(#blur12)"><ellipse cx="-90" cy="10" rx="28" ry="110" fill="${C.skinSh}" opacity=".6"/>
+        <ellipse cx="20" cy="132" rx="96" ry="22" fill="${C.skinSh}" opacity=".7"/></g>
+      <g filter="url(#blur10)"><ellipse cx="-34" cy="48" rx="22" ry="14" fill="${C.blush}" opacity="${blushOp}"/><ellipse cx="84" cy="44" rx="13" ry="12" fill="${C.blush}" opacity="${blushOp * .9}"/></g>
+      <g filter="url(#blur8)"><ellipse cx="62" cy="-30" rx="28" ry="10" fill="${C.skinHi}" opacity=".5"/><ellipse cx="90" cy="20" rx="7" ry="14" fill="${C.skinHi}" opacity=".35"/></g>${extra}`, 2);
+  }
+
+  function kumaylHead3(o = {}) {
+    const out = [];
+    const skin = 'M-98 -40 C-98 -110 -50 -132 4 -132 C64 -132 104 -92 106 -14 C108 12 104 34 104 52 C100 84 82 106 56 116 C36 124 14 124 -4 120 C-36 112 -60 92 -70 62 C-82 56 -94 42 -98 20 C-100 0 -100 -20 -98 -40 Z';
+    const ear = 'M-72 8 C-80 -4 -102 0 -106 20 C-110 42 -96 60 -76 56 C-70 54 -68 48 -68 42 Z';
+    const hair = 'M-92 58 C-120 42 -132 -8 -126 -50 C-118 -116 -60 -152 6 -152 C76 -152 122 -108 124 -40 C125 -22 120 -10 112 -4 C106 -22 100 -38 92 -50 C92 -42 90 -36 84 -28 C76 -42 66 -56 54 -64 C52 -54 48 -46 40 -38 C28 -54 14 -66 -2 -70 C-4 -62 -6 -54 -12 -46 C-28 -56 -46 -58 -58 -48 C-66 -40 -70 -28 -70 -14 C-72 -2 -72 8 -70 16 C-76 8 -84 2 -94 2 C-104 4 -110 16 -108 32 C-106 44 -100 52 -92 58 Z';
+    const hairCol = '#3b2a22', hairSh = '#24170f', hairHi = '#7a5c4a';
+    out.push(hold(`<path d="${skin}" fill="x"/>`, C.skinLine, 1.8));
+    out.push(`<path d="${skin}" fill="${C.skin}"/>`);
+    out.push(skinShade3(skin, .42, `<path d="${hair}" transform="translate(3 10)" fill="${C.skinSh}" opacity=".7" filter="url(#blur6)"/>`));
+    out.push(hold(`<path d="${ear}" fill="x"/>`, C.skinLine, 1.6));
+    const eid = nid('er');
+    out.push(`<clipPath id="${eid}"><path d="${ear}"/></clipPath><path d="${ear}" fill="${C.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-80 12 C-88 6 -100 12 -100 26 C-100 40 -92 48 -82 46" fill="none" stroke="${C.skinSh}" stroke-width="7"/>
+      <ellipse cx="-70" cy="30" rx="7" ry="22" fill="${C.skinSh}" opacity=".8"/><ellipse cx="-98" cy="22" rx="4" ry="11" fill="#fff0de" opacity=".5"/></g></g>`);
+    out.push(hold(`<path d="${hair}" fill="x"/>`, '#24160f', 1.5));
+    const hid = nid('hr');
+    out.push(`<clipPath id="${hid}"><path d="${hair}"/></clipPath><path d="${hair}" fill="${hairCol}"/>
+      <g clip-path="url(#${hid})">
+        <g filter="url(#blur10)"><path d="M-150 -30 C-136 30 -116 56 -90 66 L-160 80 Z" fill="${hairSh}"/><path d="M-60 -50 C0 -30 70 -30 130 -40 L130 10 L-60 10 Z" fill="${hairSh}" opacity=".6"/></g>
+        <g filter="url(#blur6)">${brush([[-100, -90], [-62, -138], [10, -146], [76, -120]], 5, 17, 5, hairHi, 'opacity=".85"')}</g>
+        ${[[[-96, -64], [-70, -116], [-10, -136], [52, -122]], [[-40, -126], [12, -140], [74, -120], [110, -70]], [[-80, -40], [-50, -92], [16, -110], [80, -80]]]
+          .map((c, i) => brush(c, .6, i === 1 ? 3 : 2.6, .6, i === 2 ? hairSh : '#9a7a66', `opacity="${i === 2 ? .5 : .5}"`)).join('')}
+        ${[[[-10, -110], [30, -104], [66, -80], [88, -50]], [[-30, -96], [0, -96], [26, -80], [40, -64]], [[-50, -84], [-36, -84], [-20, -76], [-10, -64]]].map(c => brush(c, .5, 2.4, .5, hairSh, 'opacity=".55"')).join('')}
+      </g>`);
+    out.push(fizzaStyleFeatures(o, 'boy'));
+    if (o.warm) out.push(soft(skin, `<ellipse cx="${o.warmX ?? 140}" cy="90" rx="130" ry="120" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .32}"`));
+    if (o.rimL) out.push(ART.rim(hair, 4, 0, '#8f9fe0', o.rimL * .5, 2));
+    return out.join('');
+  }
+
+  function babaHead3(o = {}) {
+    const B = BA.B, out = [];
+    const skin = 'M-96 -50 C-96 -118 -48 -140 8 -140 C70 -140 110 -98 112 -30 C114 0 110 26 110 48 C108 92 90 122 62 136 C42 146 18 148 -4 144 C-40 136 -64 114 -76 80 C-86 72 -94 56 -96 34 C-98 10 -98 -20 -96 -50 Z';
+    const ear = 'M-76 4 C-84 -10 -108 -6 -112 16 C-116 40 -102 60 -80 56 C-74 54 -72 48 -72 42 Z';
+    const hair = 'M-112 44 C-126 10 -126 -40 -116 -80 C-104 -134 -50 -162 12 -160 C78 -158 118 -116 120 -56 C121 -44 118 -34 113 -28 C104 -54 92 -72 72 -82 C60 -88 48 -86 38 -92 C24 -98 4 -94 -14 -84 C-34 -74 -50 -60 -60 -44 C-66 -30 -68 -16 -68 -2 L-68 14 C-72 8 -78 2 -84 -2 C-94 -8 -106 -6 -112 2 C-118 14 -118 30 -112 44 Z';
+    const beard = 'M-71 -8 C-70 30 -58 58 -34 72 C-14 84 8 86 24 80 C42 74 60 74 78 80 C90 70 102 54 110 32 C112 66 108 100 90 124 C72 146 46 158 18 158 C-20 158 -54 140 -70 110 C-80 92 -82 60 -80 30 C-80 14 -78 2 -71 -8 Z';
+    const moustache = 'M20 84 C32 74 46 72 54 78 C62 72 76 74 88 84 C78 90 64 90 54 87 C42 91 28 91 20 84 Z';
+    const beardCol = '#2e211b', beardHi = '#5f493c', beardSh = '#1c130e';
+    out.push(hold(`<path d="${skin}" fill="x"/>`, B.skinLine, 1.8));
+    out.push(`<path d="${skin}" fill="${B.skin}"/>`);
+    out.push(soft(skin, `<g filter="url(#blur12)"><ellipse cx="-90" cy="0" rx="28" ry="120" fill="${B.skinSh}" opacity=".6"/></g>
+      <path d="${hair}" transform="translate(3 10)" fill="${B.skinSh}" opacity=".7" filter="url(#blur6)"/>
+      <g filter="url(#blur10)"><ellipse cx="-30" cy="36" rx="22" ry="12" fill="#de8a72" opacity=".32"/><ellipse cx="86" cy="32" rx="11" ry="10" fill="#de8a72" opacity=".28"/></g>
+      <g filter="url(#blur8)"><ellipse cx="64" cy="-44" rx="28" ry="10" fill="#ffe0c6" opacity=".55"/><ellipse cx="94" cy="10" rx="7" ry="14" fill="#ffe0c6" opacity=".35"/></g>`, 2));
+    out.push(hold(`<path d="${ear}" fill="x"/>`, B.skinLine, 1.6));
+    const eid = nid('ber');
+    out.push(`<clipPath id="${eid}"><path d="${ear}"/></clipPath><path d="${ear}" fill="${B.skin}"/>
+      <g clip-path="url(#${eid})"><g filter="url(#blur3)"><path d="M-84 10 C-92 2 -104 8 -104 22 C-104 38 -96 46 -86 44" fill="none" stroke="${B.skinSh}" stroke-width="7"/>
+      <ellipse cx="-74" cy="28" rx="7" ry="22" fill="${B.skinSh}" opacity=".8"/></g></g>`);
+    /* beard: short and full like the father in the Dua al-Faraj film, thinning towards the cheeks */
+    const bid = nid('bb'), bg = nid('bg');
+    out.push(hold(`<path d="${beard}" fill="x"/><path d="${hair}" fill="x"/>`, '#160d09', 1.5));
+    out.push(`<linearGradient id="${bg}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="10" y2="110"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset=".4" stop-color="#fff"/></linearGradient>
+      <mask id="${bid}m" maskUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400"><path d="${beard}" fill="url(#${bg})"/></mask>
+      <clipPath id="${bid}"><path d="${beard}"/></clipPath>
+      <g mask="url(#${bid}m)"><path d="${beard}" fill="${beardCol}"/>
+      <g clip-path="url(#${bid})"><g filter="url(#blur6)">${brush([[-50, 96], [-16, 136], [40, 146], [96, 108]], 3, 14, 3, beardHi, 'opacity=".55"')}
+        <path d="M-90 126 C-40 176 60 176 116 116 L124 190 L-100 190 Z" fill="${beardSh}" opacity=".55"/></g>
+        ${Array.from({ length: 44 }, (_, i) => { const a = i * 2.39996, r = 14 + (i * 37) % 70, x = 18 + Math.cos(a) * r, y = 110 + Math.sin(a) * r * .45; return brush([[x, y], [x + .6, y + 2.5], [x + 1.2, y + 5], [x + 1.4, y + 7.5]], .4, 1.8, .3, i % 3 ? beardHi : beardSh, 'opacity=".5"'); }).join('')}
+      </g></g>`);
+    /* open, happy smile inside the beard, then the moustache */
+    const mo = 'M28 94 C42 98 64 98 80 92 C76 108 64 116 54 116 C42 116 32 108 28 94 Z', mid = nid('bm');
+    out.push(`<clipPath id="${mid}"><path d="${mo}"/></clipPath><path d="${mo}" fill="#6a2320"/>
+      <g clip-path="url(#${mid})"><path d="M24 90 L84 88 L82 100 C64 103 42 103 26 100 Z" fill="#fffaf2"/><ellipse cx="54" cy="118" rx="15" ry="7" fill="#e2716b"/></g>`);
+    out.push(hold(`<path d="${moustache}" fill="x"/>`, beardSh, 1) + `<path d="${moustache}" fill="${beardCol}"/>`);
+    out.push(brush([[28, 80], [38, 77], [48, 78], [54, 81]], .5, 2.2, .5, beardHi, 'opacity=".6"') + brush([[58, 81], [66, 77], [76, 78], [84, 83]], .5, 2, .5, beardHi, 'opacity=".5"'));
+    /* hair */
+    const hid = nid('bh');
+    out.push(`<clipPath id="${hid}"><path d="${hair}"/></clipPath><path d="${hair}" fill="#2e211b"/>
+      <g clip-path="url(#${hid})"><g filter="url(#blur6)">${brush([[-96, -96], [-54, -148], [26, -154], [94, -116]], 5, 18, 5, '#5f493c', 'opacity=".9"')}
+        <path d="M-140 20 C-128 -20 -118 -50 -112 -64 L-150 -64 Z" fill="#160d09" opacity=".7"/></g>
+        ${[[[-40, -152], [6, -152], [66, -134], [106, -90]], [[-50, -128], [0, -136], [52, -122], [90, -92]], [[-56, -104], [-14, -112], [32, -106], [64, -92]], [[-60, -150], [-90, -132], [-110, -100], [-116, -60]]]
+          .map((c, i) => brush(c, .5, i === 0 ? 3 : 2.4, .5, '#8a6c5a', 'opacity=".5"')).join('')}
+        ${brush([[-56, -158], [-50, -134], [-46, -114], [-40, -96]], .5, 2.6, .5, '#0c0705', 'opacity=".5"')}</g>`);
+    out.push(fizzaStyleFeatures(o, 'man'));
+    if (o.warm) out.push(soft(skin, `<ellipse cx="${o.warmX ?? 150}" cy="40" rx="150" ry="140" fill="${C.warm}"/>`, 24, `opacity="${o.warm * .26}"`));
+    return out.join('');
+  }
+
+  /* the eye gradient used above */
+  ART.defs += `<radialGradient id="iris2" cx=".5" cy=".62" r=".6"><stop offset="0" stop-color="#a8703f"/><stop offset=".55" stop-color="#5a3320"/><stop offset="1" stop-color="#2a140b"/></radialGradient>`;
+  /* Fizza keeps her original face from chars.js (the user preferred it); Kumayl and Baba are rebuilt on it */
+  CH.kumaylHead = o => `<g transform="translate(0 24)">${kumaylHead3(o)}</g>`;
+  BA.babaHead = o => `<g transform="translate(0 8)">${babaHead3(o)}</g>`;
+  window.FACES = { eye, mouthOpen, mouthSmile, HEAD_K };
+})();
+
+/* Kumayl & Fizza, How Do You Wrap a Kindness?: the illustrated pages (1600 x 1131, the shape of an A4 sheet). */
+(function () {
+  const { brush, soft, rim, hold, nid, f, C } = ART;
+  const W = 1600, H = 1131;
+  const rng = seed => { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; };
+
+  /* ---------- shared scenery ---------- */
+  function stars(seed, n, y0, y1, avoid = []) {
+    const R = rng(seed), out = [];
+    for (let i = 0; i < n; i++) {
+      const x = R() * W, y = y0 + R() * R() * (y1 - y0), r = .6 + R() * 1.6, o = .35 + R() * .6;
+      if (avoid.some(a => Math.hypot(x - a[0], y - a[1]) < a[2])) continue;
+      out.push(`<circle class="tw" style="--d:${f(R() * 4)}s" cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#fff8e6" opacity="${f(o)}"/>`);
+      if (r > 1.9) out.push(`<path d="M${f(x - 7)} ${f(y)} L${f(x + 7)} ${f(y)} M${f(x)} ${f(y - 7)} L${f(x)} ${f(y + 7)}" stroke="#fff8e6" stroke-width=".9" opacity="${f(o * .7)}"/>`);
+    }
+    return out.join('');
+  }
+  function moon(x, y, r, phase = 1) {
+    const id = nid('mn');
+    return `<circle cx="${x}" cy="${y}" r="${r * 4.2}" fill="url(#moonHalo)"/>
+      <clipPath id="${id}"><circle cx="${x}" cy="${y}" r="${r}"/></clipPath>
+      <circle cx="${x}" cy="${y}" r="${r}" fill="url(#moonFace)"/>
+      <g clip-path="url(#${id})" opacity=".5"><g filter="url(#blur6)">
+        <ellipse cx="${x - r * .3}" cy="${y - r * .2}" rx="${r * .32}" ry="${r * .24}" fill="#d9c9a0"/>
+        <ellipse cx="${x + r * .25}" cy="${y + r * .3}" rx="${r * .26}" ry="${r * .2}" fill="#dccca6"/>
+        <ellipse cx="${x + r * .35}" cy="${y - r * .35}" rx="${r * .14}" ry="${r * .12}" fill="#d6c59c"/>
+        <ellipse cx="${x - r * .45}" cy="${y + r * .38}" rx="${r * .16}" ry="${r * .12}" fill="#d9c9a2"/></g>
+        ${phase < 1 ? `<circle cx="${x + r * (.12 + phase * 1.9)}" cy="${y}" r="${r * 1.12}" fill="#20285e" opacity=".85" filter="url(#blur4)"/>` : ''}
+      </g>`;
+  }
+  function cloud(x, y, s, col, lit, op = 1) {
+    const puffs = [[0, 0, 70, 30], [60, -14, 58, 34], [120, 2, 66, 28], [-60, 6, 50, 22], [180, 10, 44, 18]];
+    return `<g opacity="${op}" transform="translate(${x} ${y}) scale(${s})"><g filter="url(#blur6)">
+      ${puffs.map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="${p[2]}" ry="${p[3]}" fill="${col}"/>`).join('')}</g>
+      <g filter="url(#blur8)">${puffs.slice(0, 3).map(p => `<ellipse cx="${p[0] + 8}" cy="${p[1] - p[3] * .5}" rx="${p[2] * .7}" ry="${p[3] * .4}" fill="${lit}" opacity=".7"/>`).join('')}</g></g>`;
+  }
+  /* rooftops, domes, minarets and palms along a horizon line */
+  function skyline(seed, base, col, winCol, o = {}) {
+    const R = rng(seed), out = [], wins = [];
+    let x = -40;
+    while (x < W + 40) {
+      const kind = R();
+      if (kind < .1 && !o.noDome) {
+        const w = 140 + R() * 60, h = 70 + R() * 40, dr = w * .32;
+        out.push(`<rect x="${f(x)}" y="${f(base - h)}" width="${f(w)}" height="${f(h + 4)}" fill="${col}"/>`);
+        const cx = x + w / 2, dy = base - h;
+        out.push(`<path d="M${f(cx - dr)} ${f(dy)} C${f(cx - dr)} ${f(dy - dr * 1.1)} ${f(cx - dr * .3)} ${f(dy - dr * 1.5)} ${f(cx)} ${f(dy - dr * 1.7)} C${f(cx + dr * .3)} ${f(dy - dr * 1.5)} ${f(cx + dr)} ${f(dy - dr * 1.1)} ${f(cx + dr)} ${f(dy)} Z" fill="${col}"/>`);
+        out.push(`<rect x="${f(cx - 1.5)}" y="${f(dy - dr * 1.7 - 22)}" width="3" height="22" fill="${col}"/><circle cx="${f(cx)}" cy="${f(dy - dr * 1.7 - 24)}" r="4" fill="${col}"/>`);
+        for (const mx of [x - 10, x + w - 6]) {
+          const mh = h + 120 + R() * 40;
+          out.push(`<rect x="${f(mx)}" y="${f(base - mh)}" width="16" height="${f(mh)}" fill="${col}"/><rect x="${f(mx - 5)}" y="${f(base - mh + 26)}" width="26" height="8" fill="${col}"/>
+            <path d="M${f(mx - 2)} ${f(base - mh)} L${f(mx + 8)} ${f(base - mh - 30)} L${f(mx + 18)} ${f(base - mh)} Z" fill="${col}"/>`);
+          wins.push([mx + 5, base - mh + 40, 6, 10]);
+        }
+        for (let k = 0; k < 4; k++) wins.push([x + 18 + k * (w - 36) / 3.5, base - h + 22, 9, 16]);
+        x += w + 30;
+      } else if (kind < .2 && !o.noPalm) {
+        const h = 110 + R() * 70, lean = (R() - .5) * 30;
+        out.push(`<path d="M${f(x)} ${f(base)} Q${f(x + lean * .5)} ${f(base - h * .5)} ${f(x + lean)} ${f(base - h)}" stroke="${col}" stroke-width="7" fill="none"/>`);
+        for (let k = 0; k < 7; k++) {
+          const a = -160 + k * 26 + R() * 8, L = 50 + R() * 26, tx = x + lean + Math.cos(a * Math.PI / 180) * L, ty = base - h + Math.sin(a * Math.PI / 180) * L * .6 + 18;
+          out.push(brush([[x + lean, base - h], [x + lean + (tx - x - lean) * .4, base - h - 16], [x + lean + (tx - x - lean) * .8, ty - 10], [tx, ty]], 10, 9, 1, col));
+        }
+        x += 40 + R() * 30;
+      } else {
+        const w = 70 + R() * 110, h = 40 + R() * 90;
+        out.push(`<rect x="${f(x)}" y="${f(base - h)}" width="${f(w)}" height="${f(h + 4)}" fill="${col}"/>`);
+        if (R() < .5) out.push(`<rect x="${f(x - 4)}" y="${f(base - h - 6)}" width="${f(w + 8)}" height="8" fill="${col}"/>`);
+        if (R() < .3) out.push(`<rect x="${f(x + w * .6)}" y="${f(base - h - 26)}" width="${f(w * .3)}" height="26" fill="${col}"/>`);
+        const rows = Math.floor(h / 34);
+        for (let r = 0; r < rows; r++) for (let c = 0; c < Math.floor(w / 36); c++) if (R() < .38) wins.push([x + 14 + c * 36, base - h + 16 + r * 34, 12, 16]);
+        x += w + R() * 14;
+      }
+    }
+    const lit = wins.map(w => `<rect x="${f(w[0])}" y="${f(w[1])}" width="${f(w[2])}" height="${f(w[3])}" rx="2" fill="${winCol}"/>`).join('');
+    return out.join('') + `<g opacity="${o.winOp ?? .9}">${lit}</g>`;
+  }
+  /* a string of warm bulbs hanging between two points with a sag */
+  function lightString(a, b, sag, n, o = {}) {
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + sag];
+    const c1 = [a[0] + (mid[0] - a[0]) * .9, mid[1]], c2 = [b[0] - (b[0] - mid[0]) * .9, mid[1]];
+    const out = [`<path d="M${f(a[0])} ${f(a[1])} C${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${f(b[0])} ${f(b[1])}" stroke="${o.wire || '#1b1d3a'}" stroke-width="${o.ww || 2.4}" fill="none"/>`];
+    const cols = o.cols || ['#ffd27a', '#ffb45c', '#fff0c2', '#ff9f8a', '#ffd27a'];
+    for (let i = 1; i < n; i++) {
+      const p = ART.cubic(a, c1, c2, b, i / n), c = cols[i % cols.length], s = o.s || 1;
+      out.push(`<g transform="translate(${f(p[0])} ${f(p[1])}) scale(${s})"><circle class="bulb" style="--d:${f((i * .37) % 3)}s" cy="9" r="22" fill="${c}" opacity=".28" filter="url(#blur8)"/>
+        <rect x="-3" y="-2" width="6" height="6" rx="1" fill="${o.wire || '#1b1d3a'}"/><ellipse cy="10" rx="5.5" ry="8" fill="${c}"/><ellipse cx="-1.6" cy="7" rx="1.8" ry="3" fill="#fff" opacity=".8"/></g>`);
+    }
+    return out.join('');
+  }
+  /* a paper lantern hanging from a thread */
+  function lantern(x, y, s, col, colD, thread = 60) {
+    return `<g transform="translate(${x} ${y}) scale(${s})">
+      <path d="M0 ${-thread} L0 -34" stroke="#1b1d3a" stroke-width="2"/>
+      <ellipse cy="10" rx="70" ry="80" fill="${col}" opacity=".3" filter="url(#blur16)"/>
+      <rect x="-14" y="-36" width="28" height="9" rx="3" fill="#3a2a40"/>
+      <path d="M-30 -28 C-46 -10 -46 30 -30 48 L30 48 C46 30 46 -10 30 -28 Z" fill="${col}"/>
+      <path d="M-30 -28 C-38 -10 -38 30 -30 48 M-12 -28 C-16 -10 -16 30 -12 48 M12 -28 C16 -10 16 30 12 48 M30 -28 C38 -10 38 30 30 48" stroke="${colD}" stroke-width="2" fill="none" opacity=".6"/>
+      <ellipse cx="-6" cy="8" rx="14" ry="26" fill="#fff6d8" opacity=".55" filter="url(#blur6)"/>
+      <rect x="-14" y="46" width="28" height="8" rx="3" fill="#3a2a40"/>
+      <path d="M0 54 L0 74" stroke="${colD}" stroke-width="3"/><path d="M-4 74 L4 74 L2 86 L-2 86 Z" fill="${colD}"/></g>`;
+  }
+  /* an 8-pointed star tile pattern band */
+  function tileBand(y, h, x0 = 0, x1 = W) {
+    const id = nid('tp');
+    return `<pattern id="${id}" x="${x0}" y="${y}" width="${h}" height="${h}" patternUnits="userSpaceOnUse">
+        <rect width="${h}" height="${h}" fill="#2d6f86"/>
+        <g transform="translate(${h / 2} ${h / 2})"><rect x="${-h * .3}" y="${-h * .3}" width="${h * .6}" height="${h * .6}" fill="#e9c46a"/><rect x="${-h * .3}" y="${-h * .3}" width="${h * .6}" height="${h * .6}" fill="#e9c46a" transform="rotate(45)"/>
+          <circle r="${h * .17}" fill="#2d6f86"/><circle r="${h * .09}" fill="#f6efe0"/></g>
+        <g fill="#f6efe0" opacity=".8">${[[0, 0], [h, 0], [0, h], [h, h]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${h * .12}"/>`).join('')}</g>
+      </pattern>
+      <rect x="${x0}" y="${y}" width="${x1 - x0}" height="${h}" fill="url(#${id})"/>
+      <rect x="${x0}" y="${y - 5}" width="${x1 - x0}" height="5" fill="#f3e6c9" opacity=".8"/><rect x="${x0}" y="${y + h}" width="${x1 - x0}" height="5" fill="#f3e6c9" opacity=".8"/>`;
+  }
+  /* a terracotta pot with a leafy plant; base centre at the origin */
+  function plant(seed, s = 1, flowers = '#ff6f7d', noPot = false) {
+    const R = rng(seed), leaves = [];
+    for (let i = 0; i < 16; i++) {
+      const a = -150 + R() * 120, L = 60 + R() * 70, x0 = (R() - .5) * 30, y0 = -70;
+      const tx = x0 + Math.cos(a * Math.PI / 180) * L, ty = y0 + Math.sin(a * Math.PI / 180) * L;
+      const col = ['#2f6b4f', '#3c8460', '#245540', '#4a9a6c'][i % 4];
+      leaves.push(brush([[x0, y0], [x0 + (tx - x0) * .3, y0 + (ty - y0) * .3 - 10], [x0 + (tx - x0) * .7, y0 + (ty - y0) * .7 - 8], [tx, ty]], 4, 22, 2, col));
+    }
+    const fl = [];
+    for (let i = 0; i < 7; i++) { const x = (R() - .5) * 120, y = -110 - R() * 70; fl.push(`<circle cx="${f(x)}" cy="${f(y)}" r="${f(9 + R() * 5)}" fill="${flowers}"/><circle cx="${f(x - 2)}" cy="${f(y - 2)}" r="3.5" fill="#ffe0a6"/>`); }
+    if (noPot) return `<g transform="scale(${s})">${leaves.join('')}${fl.join('')}</g>`;
+    return `<g transform="scale(${s})">${leaves.join('')}${fl.join('')}
+      <path d="M-46 -78 L46 -78 L36 0 L-36 0 Z" fill="#c4683f"/><rect x="-52" y="-86" width="104" height="16" rx="4" fill="#d9804f"/>
+      <path d="M-46 -70 L-36 0 L-14 0 L-22 -70 Z" fill="#e39466" opacity=".5"/><path d="M20 -70 L14 0 L36 0 L46 -70 Z" fill="#8a3f22" opacity=".45"/></g>`;
+  }
+  /* sparks of light drifting up from the jar */
+  function motes(seed, cx, cy, n, spread) {
+    const R = rng(seed);
+    return Array.from({ length: n }, () => {
+      const x = cx + (R() - .5) * spread, y = cy - R() * spread * 1.4, r = 1.5 + R() * 3;
+      return `<g class="mote" style="--d:${f(R() * 5)}s"><circle cx="${f(x)}" cy="${f(y)}" r="${f(r * 3)}" fill="#ffd98a" opacity=".35" filter="url(#blur4)"/><circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#fff4cf"/></g>`;
+    }).join('');
+  }
+  const grain = (op = .5) => `<rect width="${W}" height="${H}" filter="url(#grain)" opacity="${op}" pointer-events="none"/>`;
+  const vignette = (op = .55) => `<rect width="${W}" height="${H}" fill="url(#vig)" opacity="${op}" pointer-events="none"/>`;
+  const sceneDefs = `
+    <radialGradient id="moonHalo"><stop offset="0" stop-color="#fff3cf" stop-opacity=".55"/><stop offset=".3" stop-color="#cfd8ff" stop-opacity=".18"/><stop offset="1" stop-color="#9aa8ff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="moonFace" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#fffbea"/><stop offset=".7" stop-color="#f6e9c4"/><stop offset="1" stop-color="#e8d5a6"/></radialGradient>
+    <radialGradient id="vig" cx=".5" cy=".46" r=".75"><stop offset=".55" stop-color="#0b0d26" stop-opacity="0"/><stop offset="1" stop-color="#0b0d26" stop-opacity="1"/></radialGradient>`;
+
+  /* ---------- characters as composed for a page ---------- */
+  const D = { col: C.dress, sh: C.dressSh, cuff: C.dressDeep, line: C.dressLine };
+  const T = { col: C.tunic, sh: C.tunicSh, cuff: C.tunicDeep, line: C.tunicLine };
+  const tilt = (deg, inner) => `<g transform="rotate(${deg} 10 120)">${inner}</g>`;
+
+  /* ---------- the cover ---------- */
+  function cover() {
+    const fz = { far: PO.arm({ ...D, s: [74, 200], e: [116, 306], w: [180, 292], wu: 46, we: 40, ww: 34 }),
+                 near: PO.arm({ ...D, s: [-86, 216], e: [-34, 360], w: [62, 352], hand: 'cup', handRot: -22, wu: 52, we: 46, ww: 38, warm: .9 }) };
+    const km = {
+                 near: PO.arm({ ...T, s: [-100, 234], e: [-112, 362], w: [74, 352], hand: 'cup', handRot: -10, wu: 54, we: 48, ww: 40, warm: .8 }) };
+    const kids = (part) => `<g transform="translate(800 860) scale(1.16) translate(-800 -860)">${part}</g>`;
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kumayl and Fizza on their rooftop at night under a full moon, holding a glowing jar full of paper stars">
+      <defs>${ART.defs}${sceneDefs}
+        <linearGradient id="cvSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f1440"/><stop offset=".55" stop-color="#26306f"/><stop offset=".8" stop-color="#4a3f86"/><stop offset="1" stop-color="#7a5a8e"/></linearGradient>
+        <linearGradient id="cvWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a6a86"/><stop offset="1" stop-color="#4b3a5e"/></linearGradient>
+        <linearGradient id="cvTitle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4cc"/><stop offset=".55" stop-color="#ffd36e"/><stop offset="1" stop-color="#f3a53c"/></linearGradient>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#cvSky)"/>
+      ${stars(11, 260, 0, 760, [[1420, 236, 150]])}
+      ${moon(1420, 236, 96)}
+      ${cloud(1270, 330, 1, '#4b4f95', '#9aa6e6', .8)}${cloud(220, 520, .9, '#40457f', '#7f8bd0', .55)}
+      ${skyline(5, 760, '#3a3c7c', '#ffd98a', { winOp: .45 })}
+      ${skyline(9, 800, '#2a2b62', '#ffc86a', { winOp: .85, noDome: false })}
+      <rect y="790" width="${W}" height="80" fill="#2a2b62"/>
+      ${lightString([-20, 470], [1620, 430], 170, 22)}
+      ${lantern(44, 560, .85, '#ff9f6b', '#c4542f', 300)}${lantern(1500, 520, .8, '#ffd36e', '#c98a1e', 200)}
+      ${kids(`<g transform="translate(600 470)">${fz.far.sleeve}${PO.fizzaBody({ warm: .6 })}${CH.fizzaHead({ look: [.75, .35], warm: .9 })}</g>
+        <g transform="translate(1000 462) scale(-1 1)">${PO.kumaylBody({ warm: .45, arms: [km.near] })}${tilt(4, CH.kumaylHead({ look: [.7, .55], mouth: 'open', warm: .9, rimL: .8 }))}</g>`)}
+      <rect x="0" y="846" width="${W}" height="${H - 846}" fill="url(#cvWall)"/>
+      <rect x="0" y="846" width="${W}" height="22" fill="#b892a8"/><rect x="0" y="846" width="${W}" height="6" fill="#e3c4cf" opacity=".7"/>
+      <rect x="0" y="868" width="${W}" height="14" fill="#2e2142" opacity=".45"/>
+      ${tileBand(930, 64)}
+      ${lightString([-20, 884], [1620, 884], 60, 26, { s: .8 })}
+      <rect x="0" y="882" width="${W}" height="${H - 882}" filter="url(#plaster)" opacity=".5"/>
+      <ellipse cx="800" cy="900" rx="520" ry="200" fill="#ffc670" opacity=".2" filter="url(#blur40)"/>
+      <ellipse cx="800" cy="852" rx="190" ry="16" fill="#ffe2a0" opacity=".55" filter="url(#blur8)"/>
+      <g transform="translate(150 852)">${plant(3, 1.05)}</g><g transform="translate(1470 852)">${plant(8, .95, '#ffd36e')}</g>
+      ${kids(`<g transform="translate(800 860)">${PO.jar({ seed: 7 })}</g>
+        <g transform="translate(600 470)">${PO.underDrape(fz.near.sleeve)}${fz.near.hand}</g>
+        <g transform="translate(1000 462) scale(-1 1)">${km.near.fore}${km.near.hand}</g>`)}
+      ${[[786, 566, 15, 0, -12], [828, 520, 12, 1, 18], [792, 474, 10, 2, 4]].map(([x, y, r, c, a]) => `<g class="mote" style="--d:${(r % 3) * .7}s"><circle cx="${x}" cy="${y}" r="${r * 2.4}" fill="#ffd27a" opacity=".45" filter="url(#blur8)"/><g transform="translate(${x} ${y}) rotate(${a})">${PO.star(r, c)}</g></g>`).join('')}
+      ${motes(4, 800, 600, 18, 220)}
+      <g font-family="'Baloo 2', 'Fredoka', system-ui, sans-serif">
+        <text x="92" y="92" font-size="34" font-weight="700" letter-spacing="6" fill="#cfd6ff">KUMAYL &amp; FIZZA</text>
+        ${[`fill="#1a1440" opacity=".55" transform="translate(4 6)"`, `fill="#ffc35c" opacity=".55" filter="url(#blur12)"`, `fill="url(#cvTitle)"`]
+          .map(a => `<text x="86" y="176" font-size="86" font-weight="800" ${a}>How Do You Wrap a Kindness?</text>`).join('')}
+        <text x="92" y="226" font-size="32" font-weight="600" fill="#e8ebff">A story for the 15th of Sha&#8217;ban</text>
+        <text x="${W - 70}" y="1080" font-size="44" text-anchor="end" font-family="'Amiri', serif" fill="#f6e3b0" opacity=".92">النصف من شعبان</text>
+      </g>
+      ${grain(.55)}${vignette(.5)}
+    </svg>`;
+  }
+
+  /* ---------- page 1: through the window at dusk, hanging the lights the night before ---------- */
+  function page1() {
+    const B = BA.B;
+    const TH = { col: B.thobe, sh: B.thobeSh, cuff: B.thobeDeep, line: B.thobeLine, skin: B.skin, shade: B.skinSh, skinLine: B.skinLine };
+    /* Baba: head at (1065, 330), scale .8, mirrored to face the children on the left */
+    const BX = 1065, BY = 330, BS = .8;
+    const bFar = PO.arm({ ...TH, s: [100, 222], e: [200, 70], w: [176, -96], hand: 'grip', handRot: 4, wu: 66, we: 56, ww: 46, hs: 1.3 });
+    const bNear = PO.arm({ ...TH, s: [-132, 240], e: [-218, 76], w: [-166, -92], hand: 'grip', handRot: -4, flipHand: true, wu: 70, we: 60, ww: 48, hs: 1.3 });
+    const toB = p => [BX - p[0] * BS, BY + p[1] * BS];
+    /* Fizza: head at (840, 590), facing right, looking up at Baba */
+    const FX = 840, FY = 590, FS = .95;
+    const fL = PO.arm({ ...D, s: [-80, 220], e: [-34, 300], w: [-12, 268], hand: 'cup', handRot: 32, wu: 50, we: 44, ww: 36 });
+    const fR = PO.arm({ ...D, s: [76, 210], e: [118, 296], w: [108, 268], hand: 'cup', handRot: -34, flipHand: true, wu: 48, we: 42, ww: 34 });
+    const toF = p => [FX + p[0] * FS, FY + p[1] * FS];
+    /* Kumayl: head at (1300, 598), mirrored to face left, holding a coil of lights */
+    const KX = 1300, KY = 598, KS = .95;
+    const kNear = PO.arm({ ...T, s: [-100, 234], e: [-114, 300], w: [36, 306], hand: 'rest', handRot: 2, wu: 54, we: 48, ww: 40 });
+    const kFar = PO.arm({ ...T, s: [84, 214], e: [134, 304], w: [96, 268], wu: 48, we: 42, ww: 36 });
+    const toK = p => [KX - p[0] * KS, KY + p[1] * KS];
+    const coilC = [1414, 892];
+
+    /* the string of lights: Fizza's hands -> Baba's far hand -> across -> Baba's near hand -> Kumayl's coil */
+    const b1 = toB(bFar.tip), b2 = toB(bNear.tip);
+    const fest = (a, b, sag) => `C${f(a[0] + (b[0] - a[0]) * .25)} ${f(a[1] + (b[1] - a[1]) * .25 + sag)} ${f(a[0] + (b[0] - a[0]) * .75)} ${f(a[1] + (b[1] - a[1]) * .75 + sag)} ${f(b[0])} ${f(b[1])}`;
+    const archAt = t => [688 * (1 - t) ** 2 + 2 * 1060 * t * (1 - t) + 1432 * t * t, 312 * (1 - t) ** 2 + 2 * 140 * t * (1 - t) + 312 * t * t + 6];
+    const a0 = archAt(.01), a1 = archAt(.15), a2 = archAt(.86), a3 = archAt(.99), e1 = [1420, 640];
+    const wire = `M${f(a0[0])} ${f(a0[1])} ${fest(a0, a1, 46)} ${fest(a1, b1, 40)} ${fest(b1, b2, 26)} ${fest(b2, a2, 40)} ${fest(a2, a3, 46)}
+      C${f(a3[0] + 4)} ${f(a3[1] + 120)} ${f(e1[0] + 6)} ${f(e1[1] - 120)} ${f(e1[0])} ${f(e1[1])} C${f(e1[0] - 6)} ${f(e1[1] + 90)} ${f(coilC[0] + 4)} ${f(coilC[1] - 150)} ${f(coilC[0])} ${f(coilC[1])}`;
+    const bulbsOn = (d, n, seed) => {
+      const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'path'); tmp.setAttribute('d', d);
+      const L = tmp.getTotalLength(), cols = ['#ffd27a', '#ff9f8a', '#fff0c2', '#ffb45c', '#b9e3ff'], out = [];
+      for (let i = 1; i < n; i++) {
+        const p = tmp.getPointAtLength(L * i / n), c = cols[(i + seed) % cols.length];
+        out.push(`<g transform="translate(${f(p.x)} ${f(p.y)})"><circle class="bulb" style="--d:${f((i * .41) % 3)}s" cy="8" r="18" fill="${c}" opacity=".35" filter="url(#blur6)"/>
+          <rect x="-2.5" y="-2" width="5" height="5" rx="1" fill="#2a2440"/><ellipse cy="8" rx="4.6" ry="7" fill="${c}"/><ellipse cx="-1.4" cy="5.5" rx="1.5" ry="2.6" fill="#fff" opacity=".8"/></g>`);
+      }
+      return out.join('');
+    };
+    /* the coil Kumayl holds: loops of wire with bulbs */
+    const coil = () => {
+      const out = [], [cx, cy] = coilC;
+      for (let i = 0; i < 3; i++) {
+        const rx = 66 - i * 5, ry = 44 - i * 4, ox = (i - 1.5) * 7, oy = (i - 1.5) * 5, d = `M${f(cx + ox - rx)} ${f(cy + oy)} a${rx} ${ry} ${i * 8 - 10} 1 0 ${2 * rx} 0 a${rx} ${ry} ${i * 8 - 10} 1 0 ${-2 * rx} 0`;
+        out.push(`<path d="${d}" fill="none" stroke="#24382e" stroke-width="4"/>` + bulbsOn(d, 13, i));
+      }
+      return out.join('');
+    };
+
+    const arch = 'M660 920 L660 300 Q1060 112 1460 300 L1460 920 Z';
+    const inner = 'M688 920 L688 312 Q1060 140 1432 312 L1432 920 Z';
+    const winId = nid('win');
+    const shutter = (x, w, flip) => {
+      const slats = Array.from({ length: 22 }, (_, i) => `<rect x="${x + 14}" y="${330 + i * 25}" width="${w - 28}" height="12" rx="2" fill="#2b6a73" opacity=".7"/>`).join('');
+      return `<rect x="${x}" y="300" width="${w}" height="610" rx="6" fill="#3d8a92"/>${slats}
+        <rect x="${x}" y="300" width="${w}" height="610" rx="6" fill="none" stroke="#24525a" stroke-width="5"/>
+        <rect x="${flip ? x : x + w - 18}" y="300" width="18" height="610" fill="#ffcf8a" opacity=".28"/>`;
+    };
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seen from outside at dusk: Baba hangs a string of lights across the top of the window while Fizza and Kumayl kneel on the window seat holding the lights">
+      <defs>${ART.defs}${sceneDefs}
+        <linearGradient id="p1Sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232a66"/><stop offset=".7" stop-color="#5a4e8e"/><stop offset="1" stop-color="#b9799a"/></linearGradient>
+        <linearGradient id="p1Wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b98f97"/><stop offset=".6" stop-color="#9a7590"/><stop offset="1" stop-color="#6f5675"/></linearGradient>
+        <linearGradient id="p1Room" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9763f"/><stop offset=".35" stop-color="#eab774"/><stop offset="1" stop-color="#d79a58"/></linearGradient>
+        <radialGradient id="p1Spill" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+        <clipPath id="${winId}"><path d="${inner}"/></clipPath>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#p1Sky)"/>
+      ${stars(21, 40, 0, 90)}
+      ${moon(330, 58, 36, .88)}
+      <rect y="112" width="${W}" height="${H - 112}" fill="url(#p1Wall)"/>
+      <rect y="112" width="${W}" height="${H - 112}" filter="url(#stucco)" opacity=".55"/>
+      <rect y="98" width="${W}" height="26" fill="#d8b4a6"/><rect y="98" width="${W}" height="7" fill="#f1d8c8"/><rect y="124" width="${W}" height="12" fill="#4a3550" opacity=".35"/>
+      <ellipse cx="1060" cy="560" rx="780" ry="560" fill="url(#p1Spill)"/>
+      ${shutter(512, 136, false)}${shutter(1472, 136, true)}
+      <path d="${arch}" fill="#e7c3a6"/>
+      <path d="M660 920 L660 300 Q1060 112 1460 300 L1460 920 L1432 920 L1432 312 Q1060 140 688 312 L688 920 Z" fill="#c99c86"/>
+      <g clip-path="url(#${winId})">
+        <rect x="660" y="100" width="820" height="840" fill="url(#p1Room)"/>
+        <rect x="660" y="100" width="820" height="840" filter="url(#plaster)" opacity=".25"/>
+        <ellipse cx="1240" cy="420" rx="420" ry="320" fill="#fff0c8" opacity=".35" filter="url(#blur40)"/>
+        <g transform="translate(1340 330)"><rect x="-74" y="-60" width="148" height="128" rx="6" fill="#8a5a2b"/><rect x="-62" y="-48" width="124" height="104" fill="#22305e"/>
+          <ellipse cx="0" cy="-6" rx="70" ry="60" fill="#ffd27a" opacity=".25" filter="url(#blur12)"/>
+          <path d="M-30 30 C-34 0 -18 -24 0 -32 C18 -24 34 0 30 30 Z" fill="#f0b43c"/><path d="M-12 -20 C-6 -26 6 -26 12 -20" stroke="#fff3c4" stroke-width="3" fill="none"/>
+          <rect x="-1.5" y="-46" width="3" height="14" fill="#f0b43c"/><rect x="-46" y="-20" width="8" height="50" fill="#f0b43c"/><rect x="38" y="-20" width="8" height="50" fill="#f0b43c"/>
+          <rect x="-56" y="28" width="112" height="20" fill="#2e7f9a"/><rect x="-56" y="28" width="112" height="5" fill="#f0b43c"/></g>
+        <g transform="translate(730 470)"><rect x="-10" y="0" width="150" height="10" rx="2" fill="#7a4a26"/>
+          ${['#2e6f8e', '#c4553f', '#e0a33a', '#3f8a5c', '#7a4e9a'].map((c, i) => `<rect x="${i * 22}" y="${-54 + (i % 2) * 8}" width="18" height="${54 - (i % 2) * 8}" rx="2" fill="${c}"/>`).join('')}</g>
+        <g transform="translate(${BX} ${BY}) scale(${-BS} ${BS})">${bFar.sleeve}${bNear.upper}${BA.babaBody({ warm: .4 })}${tilt(-6, BA.babaHead({ look: [.7, .7], smileEyes: true, warm: .5 }))}${bNear.fore}</g>
+        <rect x="660" y="${H - 300}" width="820" height="120" fill="#7a4a3a"/>
+        <g transform="translate(${FX} ${FY}) scale(${FS})">${PO.fizzaBody({ warm: .3 })}${CH.fizzaHead({ look: [.6, -.9], brows: 6, mouth: 'open', warm: .4 })}${PO.underDrape(fL.upper + fR.upper)}</g>
+        <g transform="translate(${KX} ${KY}) scale(${-KS} ${KS})">${PO.kumaylBody({ warm: .3, arms: [kNear] })}${tilt(3, CH.kumaylHead({ look: [-.3, .1], mouth: 'smile', warm: .4 }))}${kNear.fore}</g>
+        <path d="${wire}" fill="none" stroke="#2a2440" stroke-width="3"/>${bulbsOn(wire, 40, 0)}
+        <g transform="translate(${BX} ${BY}) scale(${-BS} ${BS})">${bFar.hand}${bNear.hand}</g>
+        <g transform="translate(${FX} ${FY}) scale(${FS})">${lantern(48, 206, 1.05, '#ff9f6b', '#c4542f', 34)}${fL.fore}${fR.fore}${fL.hand}${fR.hand}</g>
+        <g transform="translate(${KX} ${KY}) scale(${-KS} ${KS})">${kNear.hand}</g>
+      </g>
+      <rect x="626" y="900" width="868" height="40" rx="6" fill="#e9cdb6"/><rect x="626" y="900" width="868" height="9" rx="4" fill="#fff0e0"/>
+      <rect x="626" y="940" width="868" height="14" fill="#3e2a44" opacity=".4"/>
+      <rect x="690" y="1044" width="740" height="30" fill="#3e2a44" opacity=".35" filter="url(#blur8)"/>
+      <rect x="690" y="952" width="740" height="92" rx="8" fill="#9a5a36"/><rect x="690" y="952" width="740" height="16" fill="#b8744a"/>
+      ${Array.from({ length: 9 }, (_, i) => `<rect x="${712 + i * 80}" y="982" width="54" height="40" rx="6" fill="#7e4529" opacity=".55"/>`).join('')}
+      <rect x="690" y="1020" width="740" height="24" rx="8" fill="#6e3a22" opacity=".5"/>
+      ${[740, 860, 980, 1110, 1240, 1370].map((x, i) => `<g transform="translate(${x} 966)">${plant(30 + i, .5, i % 2 ? '#ff6f7d' : '#ff9fb4', true)}</g>`).join('')}
+      <ellipse cx="1060" cy="905" rx="420" ry="26" fill="#ffd9a0" opacity=".35" filter="url(#blur12)"/>
+      <g transform="translate(130 1262)">${plant(77, 1.7, '#ffd36e')}</g>
+      ${grain(.5)}${vignette(.38)}
+    </svg>`;
+  }
+
+  /* ---------- a framed picture of the golden dome in Samarra; centre (cx, cy), w x h ---------- */
+  function samarra(cx, cy, w, h) {
+    const k = w / 270, id = nid('sam'), sky = nid('samSky'), dome = nid('samDome');
+    const arches = Array.from({ length: 5 }, (_, i) => { const x = -64 + i * 32; return `<path d="M${x - 10} 92 L${x - 10} 64 C${x - 10} 54 ${x + 10} 54 ${x + 10} 64 L${x + 10} 92 Z" fill="#22305e"/><path d="M${x - 10} 64 C${x - 10} 54 ${x + 10} 54 ${x + 10} 64" stroke="#f0b43c" stroke-width="2" fill="none"/>`; }).join('');
+    const minaret = x => `<rect x="${x - 6}" y="-52" width="12" height="150" fill="#ead9b0"/><rect x="${x - 6}" y="-52" width="5" height="150" fill="#fff4d6" opacity=".5"/>
+      <rect x="${x - 11}" y="-30" width="22" height="7" rx="2" fill="#f0b43c"/><rect x="${x - 9}" y="20" width="18" height="6" rx="2" fill="#2e7f9a"/>
+      <path d="M${x - 7} -52 L${x - 7} -62 C${x - 7} -72 ${x + 7} -72 ${x + 7} -62 L${x + 7} -52 Z" fill="#f0b43c"/><path d="M${x} -70 L${x} -84" stroke="#f0b43c" stroke-width="2.4"/><circle cx="${x}" cy="-86" r="2.6" fill="#ffe08a"/>`;
+    return `<g transform="translate(${cx} ${cy}) scale(${k})">
+      <ellipse cx="0" cy="0" rx="230" ry="200" fill="#ffd9a0" opacity=".35" filter="url(#blur40)"/>
+      <rect x="-129" y="-109" width="270" height="230" rx="8" fill="#3a2414" opacity=".35" filter="url(#blur8)"/>
+      <rect x="-135" y="-115" width="270" height="230" rx="8" fill="#8a5a2b"/>
+      <rect x="-135" y="-115" width="270" height="10" rx="5" fill="#b07a44"/><rect x="-135" y="105" width="270" height="10" rx="5" fill="#5e3a1c"/>
+      <rect x="-123" y="-103" width="246" height="206" rx="3" fill="#e0b25a"/>
+      <defs><linearGradient id="${sky}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#18235a"/><stop offset="1" stop-color="#47508f"/></linearGradient>
+        <linearGradient id="${dome}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe08a"/><stop offset=".45" stop-color="#f3b63e"/><stop offset="1" stop-color="#b9781a"/></linearGradient></defs>
+      <clipPath id="${id}"><rect x="-118" y="-98" width="236" height="196"/></clipPath>
+      <g clip-path="url(#${id})">
+        <rect x="-120" y="-100" width="240" height="200" fill="url(#${sky})"/>
+        ${[[-92, -80], [-60, -60], [74, -74], [96, -46], [-100, -30], [40, -88]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#fff8e6"/>`).join('')}
+        <ellipse cx="0" cy="-14" rx="96" ry="70" fill="#ffd27a" opacity=".35" filter="url(#blur12)"/>
+        ${minaret(-96)}${minaret(96)}
+        <rect x="-86" y="30" width="172" height="70" fill="#ead9b0"/><rect x="-86" y="30" width="172" height="11" fill="#2e7f9a"/><rect x="-86" y="30" width="172" height="3" fill="#f0b43c"/>
+        ${arches}
+        <rect x="-42" y="8" width="84" height="24" fill="#2e7f9a"/><rect x="-42" y="8" width="84" height="3" fill="#f0b43c"/>
+        ${[-30, -15, 0, 15, 30].map(x => `<rect x="${x - 3}" y="15" width="6" height="11" rx="3" fill="#18235a"/>`).join('')}
+        <path d="M-60 10 C-70 -24 -42 -58 0 -72 C42 -58 70 -24 60 10 Z" fill="url(#${dome})"/>
+        <path d="M-30 6 C-36 -24 -22 -52 0 -70 M30 6 C36 -24 22 -52 0 -70 M0 6 L0 -70" stroke="#c98a1e" stroke-width="1.6" fill="none" opacity=".6"/>
+        <path d="M-46 -6 C-50 -30 -32 -52 -12 -62" stroke="#fff6cf" stroke-width="5" fill="none" opacity=".55" stroke-linecap="round"/>
+        <path d="M0 -72 L0 -92" stroke="#f0b43c" stroke-width="3"/><circle cx="0" cy="-94" r="3.5" fill="#ffe08a"/>
+        <rect x="-120" y="96" width="240" height="6" fill="#2a2a50" opacity=".5"/>
+      </g>
+      <rect x="-118" y="-98" width="236" height="196" fill="none" stroke="#5e3a1c" stroke-width="2" opacity=".6"/>
+      <path d="M-110 -92 L40 -92" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round"/>
+    </g>`;
+  }
+
+  /* ---------- a brass lantern lamp on a small round table; the base of the table legs at the origin ---------- */
+  function lampTable(s = 1) {
+    const holes = Array.from({ length: 4 }, (_, r) => Array.from({ length: 5 }, (_, c) => `<circle cx="${-28 + c * 14 + (r % 2) * 7}" cy="${-330 + r * 18}" r="3.2" fill="#fff3c4"/>`).join('')).join('');
+    return `<g transform="scale(${s})">
+      <ellipse cx="0" cy="-310" rx="260" ry="230" fill="#ffd27a" opacity=".45" filter="url(#blur40)"/>
+      <ellipse cx="0" cy="4" rx="150" ry="18" fill="#3e2416" opacity=".35" filter="url(#blur8)"/>
+      <path d="M-70 -196 L-92 0 L-78 0 L-52 -196 Z M70 -196 L92 0 L78 0 L52 -196 Z" fill="#6e3f22"/>
+      <path d="M-10 -196 L-12 0 L4 0 L8 -196 Z" fill="#5a3219"/>
+      <rect x="-80" y="-120" width="160" height="10" rx="4" fill="#7e4a29"/>
+      <ellipse cx="0" cy="-196" rx="132" ry="26" fill="#7e4a29"/><ellipse cx="0" cy="-204" rx="132" ry="26" fill="#a2663b"/>
+      <ellipse cx="-30" cy="-210" rx="70" ry="10" fill="#c98a56" opacity=".55"/>
+      <ellipse cx="0" cy="-212" rx="56" ry="9" fill="#5a3219" opacity=".4"/>
+      <path d="M-34 -214 L-42 -238 L42 -238 L34 -214 Z" fill="#b9802c"/>
+      <path d="M-40 -238 C-58 -280 -56 -340 -36 -372 L36 -372 C56 -340 58 -280 40 -238 Z" fill="#d9a441"/>
+      <path d="M-40 -238 C-58 -280 -56 -340 -36 -372 L-18 -372 C-30 -340 -32 -280 -22 -238 Z" fill="#f2c96a" opacity=".6"/>
+      <path d="M40 -238 C58 -280 56 -340 36 -372 L22 -372 C34 -340 36 -280 26 -238 Z" fill="#9a6420" opacity=".55"/>
+      <g filter="url(#blur4)" opacity=".8">${holes.replace(/r="3.2" fill="#fff3c4"/g, 'r="6" fill="#ffd77a"')}</g>
+      <g opacity=".95">${holes}</g>
+      <ellipse cx="0" cy="-300" rx="36" ry="50" fill="#fff0b8" opacity=".55" filter="url(#blur12)"/>
+      <path d="M-36 -372 L-26 -392 L26 -392 L36 -372 Z" fill="#b9802c"/>
+      <path d="M-24 -392 C-24 -420 24 -420 24 -392 Z" fill="#d9a441"/><path d="M0 -416 L0 -436" stroke="#b9802c" stroke-width="5"/><circle cx="0" cy="-440" r="6" fill="#d9a441"/>
+    </g>`;
+  }
+
+  /* ---------- page 2: that evening, Baba crouches with the children and points up at the picture of Samarra ---------- */
+  function page2() {
+    const B = BA.B;
+    const TH = { col: B.thobe, sh: B.thobeSh, cuff: B.thobeDeep, line: B.thobeLine, skin: B.skin, shade: B.skinSh, skinLine: B.skinLine };
+    /* Baba: head at (BX, BY), facing right towards Fizza; his near arm points up at the picture */
+    const BX = 930, BY = 640, BS = .85;
+    /* one easy diagonal from the shoulder up towards the picture, with a slight bend at the elbow */
+    /* the raised sleeve gets the thobe's lamp-lit colour, so it is not whiter than the robe */
+    const bNear = PO.arm({ ...TH, col: '#f2e0d1', s: [-132, 240], e: [-214, 75], w: [-256, -102], hand: 'point', handRot: 0, wu: 70, we: 60, ww: 48, hs: 1.42, warm: .5 });
+    /* Fizza: in front on the right, facing left and looking up at Baba, holding her lantern */
+    const FX = 1182, FY = 768, FS = 1;
+    const fL = PO.arm({ ...D, s: [-80, 220], e: [-34, 300], w: [-12, 268], hand: 'cup', handRot: 32, wu: 50, we: 44, ww: 36, warm: .6 });
+    const fR = PO.arm({ ...D, s: [76, 210], e: [118, 296], w: [108, 268], hand: 'cup', handRot: -34, flipHand: true, wu: 48, we: 42, ww: 34, warm: .6 });
+    /* Kumayl: on the right, facing left, looking up at the picture */
+    const KX = 1446, KY = 744, KS = 1;
+    /* his near arm hangs at his side; its top sits inside the shoulder line so the shoulder stays one smooth curve */
+    const kNear = PO.arm({ ...T, s: [-86, 258], e: [-97, 440], w: [-94, 590], wu: 48, we: 44, ww: 40 });
+
+    const win = 'M1352 650 L1352 250 Q1352 92 1466 92 Q1580 92 1580 250 L1580 650 Z', winId = nid('w2');
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Indoors in the evening: Baba crouches beside Fizza and Kumayl and points up at a framed picture of a golden dome in Samarra; Fizza holds her paper lantern and looks up at him">
+      <defs>${ART.defs}${sceneDefs}
+        <linearGradient id="p2Wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b97d55"/><stop offset=".5" stop-color="#dba470"/><stop offset="1" stop-color="#c88a5a"/></linearGradient>
+        <linearGradient id="p2Dado" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8613f"/><stop offset="1" stop-color="#874a30"/></linearGradient>
+        <linearGradient id="p2Sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2460"/><stop offset=".8" stop-color="#3f3f84"/><stop offset="1" stop-color="#6a5590"/></linearGradient>
+        <radialGradient id="p2Lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff0c8" stop-opacity=".75"/><stop offset="1" stop-color="#fff0c8" stop-opacity="0"/></radialGradient>
+        <clipPath id="${winId}"><path d="${win}"/></clipPath>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#p2Wall)"/>
+      <rect y="800" width="${W}" height="${H - 800}" fill="url(#p2Dado)"/>
+      <rect y="792" width="${W}" height="14" fill="#e2b585"/><rect y="806" width="${W}" height="6" fill="#5e3220" opacity=".35"/>
+      <rect y="1060" width="${W}" height="${H - 1060}" fill="#6a3a26"/><rect y="1060" width="${W}" height="6" fill="#4a2618" opacity=".6"/>
+      <rect width="${W}" height="${H}" filter="url(#plaster)" opacity=".3"/>
+      <ellipse cx="620" cy="560" rx="820" ry="560" fill="url(#p2Lamp)"/>
+      <path d="M1338 664 L1338 250 Q1338 78 1466 78 Q1594 78 1594 250 L1594 664 Z" fill="#e7c3a6"/>
+      <g clip-path="url(#${winId})">
+        <rect x="1340" y="80" width="250" height="580" fill="url(#p2Sky)"/>
+        ${stars(31, 90, 90, 480).replace(/cx="(\d+(\.\d+)?)"/g, (m, x) => `cx="${f(1352 + (+x / W) * 228)}"`).replace(/<path[^>]*\/>/g, '')}
+        ${moon(1500, 220, 30, .88)}
+        ${skyline(14, 640, '#2c2a66', '#ffd98a', { winOp: .6, noPalm: true, noDome: true })}
+      </g>
+      <path d="${win}" fill="none" stroke="#c99c86" stroke-width="10"/>
+      <rect x="1328" y="650" width="276" height="26" rx="5" fill="#f1d8c8"/><rect x="1328" y="672" width="276" height="10" fill="#7a4a3a" opacity=".35"/>
+      ${lightString([1352, 250], [1580, 250], 40, 9, { s: .8, wire: '#2a2440' })}
+      ${lightString([-30, 34], [1340, 64], 80, 26, { s: .9, wire: '#2a2440' })}
+      ${samarra(700, 318, 300, 255)}
+      <g transform="translate(330 1104)">${lampTable(.95)}</g>
+      <g transform="translate(${BX} ${BY}) scale(${BS})">${BA.babaBody({ warm: .55, warmX: -160, raised: [bNear] })}${BA.babaHead({ look: [.7, .5], smileEyes: true, warm: .55, warmX: -150 })}${bNear.hand}</g>
+      <g transform="translate(${KX} ${KY}) scale(${-KS} ${KS})">${PO.kumaylBody({ warm: .45, arms: [kNear], rimL: .5 })}${CH.kumaylHead({ look: [.85, -.8], mouth: 'smile', warm: .45, rimL: .7 })}${kNear.fore}</g>
+      <g transform="translate(${FX} ${FY}) scale(${-FS} ${FS})">${PO.fizzaBody({ warm: .55 })}${CH.fizzaHead({ look: [.75, -.65], brows: 4, mouth: 'open', warm: .6 })}${PO.underDrape(fL.upper + fR.upper)}
+        ${lantern(48, 206, 1.05, '#ff9f6b', '#c4542f', 34)}${fL.fore}${fR.fore}${fL.hand}${fR.hand}</g>
+      ${grain(.45)}${vignette(.3)}
+    </svg>`;
+  }
+
+  /* ---------- the inside cover (endpaper): folded paper stars scattered over the night ---------- */
+  function endpaper() {
+    const pid = nid('ep'), R = rng(41);
+    const tile = 260, bits = [];
+    for (let i = 0; i < 7; i++) {
+      const x = R() * tile, y = R() * tile, r = 9 + R() * 7, c = Math.floor(R() * 5), a = R() * 72;
+      for (const [dx, dy] of [[0, 0], [-tile, 0], [0, -tile], [-tile, -tile]]) {
+        bits.push(`<g transform="translate(${f(x + dx)} ${f(y + dy)}) rotate(${f(a)})" opacity=".9">${PO.star(r, c)}</g>`);
+      }
+    }
+    for (let i = 0; i < 14; i++) bits.push(`<circle cx="${f(R() * tile)}" cy="${f(R() * tile)}" r="${f(1 + R() * 1.6)}" fill="#fff4cf" opacity="${f(.35 + R() * .4)}"/>`);
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The inside cover: little folded paper stars scattered over a deep blue night">
+      <defs>${ART.defs}${sceneDefs}
+        <linearGradient id="epSky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b2f72"/><stop offset="1" stop-color="#1c1d4e"/></linearGradient>
+        <pattern id="${pid}" width="${tile}" height="${tile}" patternUnits="userSpaceOnUse">${bits.join('')}</pattern></defs>
+      <rect width="${W}" height="${H}" fill="url(#epSky)"/>
+      <rect width="${W}" height="${H}" fill="url(#${pid})" opacity=".85"/>
+      ${grain(.4)}
+    </svg>`;
+  }
+
+  /* ---------- the title page: the jar of stars above the title on cream paper ---------- */
+  function titlePage() {
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Title page: How Do You Wrap a Kindness? A Kumayl and Fizza story for the 15th of Sha'ban, under a glowing jar of paper stars">
+      <defs>${ART.defs}${sceneDefs}
+        <radialGradient id="tpPaper" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e6d2"/></radialGradient></defs>
+      <rect width="${W}" height="${H}" fill="url(#tpPaper)"/>
+      <g transform="translate(800 470) scale(1.25)">${PO.jar({ seed: 11 })}</g>
+      ${[[742, 160, 13, 0, -12], [858, 120, 10, 1, 18], [800, 70, 8, 3, 4]].map(([x, y, r, c, a]) => `<g transform="translate(${x} ${y}) rotate(${a})">${PO.star(r, c)}</g>`).join('')}
+      <g font-family="'Baloo 2', 'Trebuchet MS', system-ui, sans-serif" text-anchor="middle">
+        <text x="800" y="586" font-size="30" font-weight="700" letter-spacing="7" fill="#6a54a8">KUMAYL &amp; FIZZA</text>
+        <text x="800" y="690" font-size="92" font-weight="800" fill="#2b2a6a">How Do You Wrap</text>
+        <text x="800" y="790" font-size="92" font-weight="800" fill="#2b2a6a">a Kindness?</text>
+        <path d="M640 832 C720 846 880 846 960 832" stroke="#e0a33a" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <text x="800" y="900" font-size="34" font-weight="600" fill="#5b5370">A story for the 15th of Sha&#8217;ban</text>
+        <text x="800" y="1040" font-size="40" font-family="'Amiri', serif" fill="#8a7a5a">النصف من شعبان</text>
+      </g>
+      ${grain(.3)}
+    </svg>`;
+  }
+
+  window.SC = { cover, endpaper, titlePage, page1, page2, samarra, lampTable, plant, motes, stars, moon, cloud, skyline, lightString, lantern, tileBand, grain, vignette, sceneDefs, W, H };
+})();
+
+/* How Do You Wrap a Kindness?: the pages in book order (cover, inside cover, title page, story pages). */
+const PAGES = [
+  { id: 'cover', label: 'Cover', art: () => SC.cover(), text: null },
+  { id: 'endpaper', label: 'Inside cover', art: () => SC.endpaper(), text: null },
+  { id: 'title', label: 'Title page', art: () => SC.titlePage(), text: null },
+  { id: 'p1', label: 'Page 1', art: () => SC.page1(),
+    panel: { left: 3.6, top: 17, width: 28 },
+    text: [
+      'It was the 14th of Sha’ban, and the moon was almost full.',
+      'Kumayl and Fizza were helping Baba hang lights in the window.',
+      '<span class="said">“Higher, Baba!”</span> said Fizza, holding up her paper lantern.',
+      '<span class="said">“Tomorrow is a very special birthday,”</span> said Kumayl. <span class="said">“Our whole house has to shine!”</span>'
+    ] },
+  { id: 'p2', label: 'Page 2', art: () => SC.page2(),
+    panel: { left: 3.4, top: 5, width: 29.5 },
+    text: [
+      '<span class="said">“Whose birthday is it?”</span> asked Fizza, even though she already knew. She just liked hearing it.',
+      'Baba pointed to the picture on the wall: a golden dome in a city called Samarra.',
+      '<span class="said">“Our Imam’s,”</span> he said. <span class="said">“Imam al-Mahdi (AJ) was born there on the 15th of Sha’ban, a long, long time ago.”</span>'
+    ] }
+];
+
+</script>
+<script>
+/* each page is drawn fresh wherever it appears, so no two copies share SVG ids */
+function pageHTML(p) {
+  if (!p) return '<div class="blank"></div>';
+  const panel = p.text ? `<div class="text" style="left:${p.panel.left}%;top:${p.panel.top}%;width:${p.panel.width}%;${p.panel.css || ''}">${p.text.map(t => `<p>${t}</p>`).join('')}</div>` : '';
+  return `<section class="page" aria-label="${p.label}">${p.art()}${panel}</section>`;
+}
+
+const app = document.querySelector('.app'), bookEl = document.getElementById('book'), slotL = document.getElementById('slotL'), slotR = document.getElementById('slotR');
+const prevBtn = document.getElementById('prev'), nextBtn = document.getElementById('next'), phoneText = document.getElementById('phoneText');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- sheet mode for the print renders ---------- */
+const sheetId = location.hash.startsWith('#sheet-') ? location.hash.slice(7) : null;
+if (sheetId) {
+  document.body.classList.add('sheet');
+  const p = PAGES.find(q => q.id === sheetId) || PAGES[0];
+  app.insertAdjacentHTML('beforeend', `<div class="sheet-page">${pageHTML(p)}</div>`);
+}
+
+/* ---------- the book ----------
+   Two pages: spread k shows pages 2k-1 (left) and 2k (right); spread 0 is the closed front cover.
+   One page: position i shows page i. */
+let mode = 'spread', pos = 0, busy = false;
+/* where this reader left off, kept per book: the books can share one site (one origin) */
+const POS_KEY = 'book-pos:' + document.title;
+const lastSpread = Math.floor(PAGES.length / 2);
+const spread = k => k === 0 ? [null, PAGES[0]] : [PAGES[2 * k - 1] || null, PAGES[2 * k] || null];
+const visible = () => mode === 'spread' ? spread(pos) : [null, PAGES[pos]];
+const maxPos = () => mode === 'spread' ? lastSpread : PAGES.length - 1;
+
+function fill(slot, p, spineSide, hide = false) {
+  slot.innerHTML = hide ? '' : pageHTML(p) + `<div class="fold ${spineSide}"></div>`;
+  slot.classList.toggle('empty', hide);
+}
+function render() {
+  const [l, r] = visible();
+  bookEl.classList.toggle('closed', mode === 'spread' && pos === 0);
+  bookEl.classList.toggle('single', mode === 'single');
+  slotL.hidden = mode === 'single';
+  if (mode === 'spread') fill(slotL, l, 'sR', pos === 0);
+  fill(slotR, r, 'sL');
+  prevBtn.disabled = pos === 0;
+  nextBtn.disabled = pos === maxPos();
+  const txt = document.body.classList.contains('small') && r && r.text ? r.text : null;
+  phoneText.hidden = !txt;
+  phoneText.innerHTML = txt ? txt.map(t => `<p>${t}</p>`).join('') : '';
+  try { localStorage.setItem(POS_KEY, JSON.stringify({ mode, pos })); } catch (e) { /* storage is optional */ }
+}
+
+/* sizes: two facing pages when each can be at least 560 px wide, otherwise one page at a time. Where two fit, the
+   reader can still choose one page at a time (the corner switch): the page fills the window and the text is bigger.
+   The choice is kept for all the books, since it is about the reader's eyes, not the book. */
+const VIEW_KEY = 'book-view', viewBtn = document.getElementById('view');
+const credit = document.getElementById('credit');
+let onePage = false;
+try { onePage = localStorage.getItem(VIEW_KEY) === 'one'; } catch (e) { /* storage is optional */ }
+function layout() {
+  const arrows = 2 * 48, fullW = document.documentElement.clientWidth - 32, availH = Math.max(240, window.innerHeight - 40 - (credit.offsetHeight + 16));
+  const two = Math.min((fullW - arrows) / 2, availH * 1.4142), fits = two >= 560;
+  viewBtn.hidden = !fits;
+  document.body.classList.toggle('one-page', fits && onePage);
+  viewBtn.setAttribute('aria-label', onePage ? 'Two pages' : 'One page at a time');
+  viewBtn.title = onePage ? 'Two pages' : 'One page at a time';
+  if (fits && !onePage) mode = 'spread';
+  else { if (mode === 'spread') pos = pos === 0 ? 0 : 2 * pos - 1; mode = 'single'; }
+  if (mode === 'spread' && document.body.dataset.mode === 'single') pos = pos === 0 ? 0 : Math.floor((pos + 1) / 2);
+  document.body.dataset.mode = mode;
+  const small = mode === 'single' && Math.min(fullW - arrows, availH * 1.4142) < 520;
+  const pw = Math.floor(mode === 'spread' ? two : Math.min(small ? fullW : fullW - arrows, availH * 1.4142));
+  const root = document.documentElement.style;
+  root.setProperty('--pw', pw + 'px');
+  root.setProperty('--ph', Math.round(pw / 1.4142) + 'px');
+  root.setProperty('--bookw', (mode === 'spread' ? 2 * pw : pw) + 'px');
+  document.body.classList.toggle('small', small);
+  /* held sideways, put the text beside the page when there is room for a column of it */
+  document.body.classList.toggle('side', small && window.innerWidth > window.innerHeight && fullW - pw - 16 >= 260);
+}
+
+/* turn one page: a leaf rotates about the spine, darkening as it lifts and lightening as it lands. The new pages are
+   drawn first and the turn starts on the frame after, so a heavy page (the 2D art is live SVG) doesn't eat into it. */
+function turn(dir) {
+  if (busy) return;
+  const to = pos + dir;
+  if (to < 0 || to > maxPos()) return;
+  if (reduceMotion) { pos = to; render(); return; }
+  busy = true;
+  const timing = { duration: 900, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' };
+  const leaf = document.createElement('div');
+  let front, back, from = 0, toAngle, frontSide = 'sL', backSide = 'sR', cover = false;
+  if (mode === 'spread') {
+    const cur = spread(pos), nxt = spread(to);
+    if (dir > 0) { leaf.className = 'leaf fwd'; front = cur[1]; back = nxt[0]; toAngle = -180; fill(slotR, nxt[1], 'sL'); }
+    else { leaf.className = 'leaf bwd'; front = cur[0]; back = nxt[1]; toAngle = 180; frontSide = 'sR'; backSide = 'sL'; fill(slotL, nxt[0], 'sR', to === 0); }
+    cover = pos === 0 || to === 0;
+  } else {
+    leaf.className = 'leaf fwd';
+    if (dir > 0) { front = PAGES[pos]; back = null; toAngle = -180; fill(slotR, PAGES[to], 'sL'); }
+    else { front = PAGES[to]; back = null; from = -180; toAngle = 0; }
+  }
+  leaf.innerHTML = `<div class="face f">${pageHTML(front)}<div class="fold ${frontSide}"></div><div class="dim"></div></div>` +
+    `<div class="face b">${pageHTML(back)}<div class="fold ${backSide}"></div><div class="dim"></div></div>`;
+  leaf.style.transform = `rotateY(${from}deg)`;
+  bookEl.appendChild(leaf);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (cover) {
+      bookEl.classList.remove('closed');
+      bookEl.animate([{ transform: pos === 0 ? 'translateX(-25%)' : 'none' }, { transform: to === 0 ? 'translateX(-25%)' : 'none' }], timing);
+    }
+    const anim = leaf.animate([{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${toAngle}deg)` }], timing);
+    const [dimF, dimB] = leaf.querySelectorAll('.dim'), lift = [{ opacity: 0 }, { opacity: .45, offset: .5 }, { opacity: .45 }], land = [{ opacity: .45 }, { opacity: .45, offset: .5 }, { opacity: 0 }];
+    dimF.animate(from === 0 ? lift : land, timing);
+    dimB.animate(from === 0 ? land : lift, timing);
+    anim.finished.then(() => {
+      pos = to;
+      bookEl.getAnimations().forEach(a => a.cancel());
+      render();
+      leaf.remove();
+      busy = false;
+    });
+  }));
+}
+
+prevBtn.addEventListener('click', () => turn(-1));
+nextBtn.addEventListener('click', () => turn(1));
+/* one page at a time (phones), the page turns both ways: a tap on its left third goes back, anywhere else forward,
+   as in e-readers; with two pages, each page turns its own way */
+slotR.addEventListener('click', e => {
+  const r = slotR.getBoundingClientRect();
+  turn(mode === 'single' && e.clientX - r.left < r.width / 3 ? -1 : 1);
+});
+slotL.addEventListener('click', () => turn(-1));
+/* full screen: the whole page (book on its cloth) fills the screen; the book grows to fit */
+const fsBtn = document.getElementById('fs'), fsRoot = document.documentElement;
+const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+fsBtn.hidden = !!sheetId || !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function toggleFs() {
+  try {
+    const p = inFs() ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+                     : (fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen).call(fsRoot);
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* full screen is optional */ }
+}
+function fsChanged() {
+  const on = inFs();
+  document.body.classList.toggle('fullscreen', on);
+  fsBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  fsBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
+}
+fsBtn.addEventListener('click', toggleFs);
+viewBtn.addEventListener('click', () => {
+  if (busy) return;
+  onePage = !onePage;
+  try { localStorage.setItem(VIEW_KEY, onePage ? 'one' : 'two'); } catch (e) { /* storage is optional */ }
+  layout(); render();
+});
+document.addEventListener('fullscreenchange', fsChanged);
+document.addEventListener('webkitfullscreenchange', fsChanged);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') turn(1);
+  else if (e.key === 'ArrowLeft') turn(-1);
+  else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !fsBtn.hidden) toggleFs();
+});
+let sx = null;
+bookEl.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+bookEl.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) turn(dx < 0 ? 1 : -1); sx = null; });
+let rz = null;
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!busy) { layout(); render(); } }, 150); });
+
+/* ---------- start closed on the cover, at the page a #p<n> link names, or where this reader left off ---------- */
+if (!sheetId) {
+  layout();
+  const named = PAGES.findIndex(p => '#' + p.id === location.hash);
+  if (named >= 0) pos = mode === 'spread' ? Math.floor((named + 1) / 2) : named;
+  else {
+    try { const s = JSON.parse(localStorage.getItem(POS_KEY) || 'null'); if (s && s.mode === mode && s.pos >= 0 && s.pos <= maxPos()) pos = s.pos; } catch (e) { /* storage is optional */ }
+  }
+  render();
+}
+addEventListener('beforeprint', () => { document.getElementById('printset').innerHTML = PAGES.map(p => `<div class="sheet-page">${pageHTML(p)}</div>`).join(''); });
+</script>
+</body>
+</html>

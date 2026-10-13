@@ -23,6 +23,7 @@ button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #app{position:relative;height:100%;overflow:hidden;background:#000}
 #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.poster{position:absolute;inset:0;background:#05060c center/cover no-repeat;pointer-events:none;transition:opacity 1.2s ease}.poster.gone{opacity:0}
 .ar{font-family:var(--arabic)}
 .vignette{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.45) 100%)}
 .letterbox{position:absolute;left:0;right:0;height:0;background:#000;z-index:2;pointer-events:none;transition:height 1.2s ease}
@@ -41,6 +42,9 @@ button{font:inherit;color:inherit}
 .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer}
 .pill svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pill[aria-pressed="true"]{color:var(--ivory);border-color:var(--gold)}
+#pauseBtn[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.paused-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;display:flex;align-items:center;gap:10px;padding:12px 20px;border:1px solid var(--gold);border-radius:999px;background:rgba(12,10,8,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--ivory);font:500 15px var(--sans);cursor:pointer}
+.paused-badge svg{width:18px;height:18px;fill:var(--gold);stroke:none}
 
 .stamp{position:absolute;left:var(--gutter);top:calc(66px + 3vh);z-index:5;pointer-events:none;max-width:min(560px,72%)}
 .stamp .chapter{font:600 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);text-shadow:0 1px 10px rgba(0,0,0,.9)}
@@ -143,7 +147,7 @@ button{font:inherit;color:inherit}
 @media (max-width:720px){.lbl{font-size:11px;padding:2px 7px 3px}.lbl .ar{display:none}}
 @keyframes rollIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.roll-i.new{animation:none}}
-@media (max-width:720px){.roll{top:auto;bottom:calc(50% + 20px);left:auto;width:min(260px,60%)}.roll-i:not(.new){display:none}.roll-i i{display:none}}
+@media (max-width:720px){.roll{top:auto;bottom:calc(156px + 3vh + env(safe-area-inset-bottom,0px));left:var(--gutter);right:var(--gutter);width:auto}.roll-i:not(.new){display:none}.roll-i i{display:none}}
 
 .fade{position:absolute;inset:0;z-index:8;background:#000;opacity:0;pointer-events:none;transition:opacity .45s ease}
 .fade.on{opacity:1}
@@ -172,7 +176,9 @@ button{font:inherit;color:inherit}
 .aud b{font-size:14.5px;font-weight:600;color:var(--ivory)}
 .aud span{font-size:12.5px;line-height:1.4;color:var(--muted)}
 .aud[aria-pressed="true"]{border-color:var(--gold);background:rgba(212,175,55,.14)}
-.begin{margin-top:18px;font-size:15px;padding:12px 24px}
+.begin{font-size:15px;padding:12px 24px}
+.begin-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.restart{background:rgba(10,10,14,.7)}
 .narr-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .voice{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;border:1px solid var(--line);background:rgba(10,10,14,.7);border-radius:12px;padding:10px 14px}
 .voice span{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -181,6 +187,7 @@ button{font:inherit;color:inherit}
 .sample:hover{border-color:var(--gold)}
 .voice select{flex:1;min-width:0;width:100%;background:transparent;border:0;color:var(--ivory);font:500 13.5px var(--sans);padding:0;cursor:pointer;text-overflow:ellipsis}
 .voice select option{background:#141210;color:var(--ivory)}
+.voice select optgroup{background:#141210;color:var(--gold);font-style:normal;font-weight:600}
 #narrState{display:inline;margin-left:4px;font-size:14.5px;color:var(--gold)}
 .narr-hint{margin:8px 0 0;font-size:12px;line-height:1.45;color:var(--faint)}
 .pron-link{display:flex;margin-top:6px;font-size:12px;font-weight:500}
@@ -204,6 +211,9 @@ button{font:inherit;color:inherit}
 @media (max-width:600px){.pron-row{grid-template-columns:1fr}}
 .cap-text.long{font-size:clamp(15px,1.2vw,18px)}
 .hint{margin:14px 0 0;font-size:12.5px;line-height:1.5;color:var(--faint)}
+/* the maker's credit: faint, in the start screen's bottom corner (it leaves with the start screen); on phones it follows the hint */
+.intro-credit{position:absolute;right:var(--gutter);bottom:calc(16px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--muted);text-decoration:none;text-shadow:0 1px 8px rgba(0,0,0,.8);opacity:.85}
+.intro-credit:hover,.intro-credit:focus-visible{color:var(--gold);opacity:1;text-decoration:underline}
 .loading{display:flex;align-items:center;gap:10px;margin-top:18px;font-size:13px;color:var(--muted)}
 .spinner{width:14px;height:14px;border:2px solid rgba(212,175,55,.25);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -220,7 +230,10 @@ button{font:inherit;color:inherit}
 
 @media (max-width:760px){
   .brand .sub{display:none}
-  .pill .lbl{display:none}
+  .pill .pl{display:none}
+  .pill{padding:8px 9px}
+  .controls{gap:6px}
+  .cine .brand strong{display:none}
   .stamp{top:58px}
   .stamp .date{font-size:21px}
   .minimap{display:none}
@@ -238,11 +251,55 @@ button{font:inherit;color:inherit}
   .intro{display:block;padding-top:38vh;background:linear-gradient(to top,rgba(4,5,10,.96) 58%,rgba(4,5,10,0) 84%)}
   .intro-inner{margin-left:0}
   .intro h1{font-size:40px}
+  .intro-credit{position:static;display:table;margin:16px 0 0 auto}
 }
 @media (max-width:520px){
   .brand strong{font-size:14px}
   .tag{display:none}
+  .intro{padding-top:30vh}
+  .narr-row{grid-template-columns:1fr}
 }
+/* phones upright: the sermon and roll sit below the caption, whose heading already names them */
+@media (max-width:720px){
+  .sermon,.sermon.side{top:calc(204px + 4vh)}
+  .sermon-h,.roll-h{display:none}
+}
+/* phones on their side: little height, so the map card and labels give way and Read more gets the full height */
+@media (max-height:500px) and (orientation:landscape){
+  .brand .sub{display:none}
+  .stamp{top:50px;max-width:38%}
+  .stamp .date{font-size:20px}
+  .stamp .stat{display:none}
+  .minimap{display:none}
+  .caption{top:50px;left:calc(var(--gutter) + 38%);right:var(--gutter);width:auto;max-width:none;transform:none;text-align:left;padding:0;background:none}
+  .cap-text{font-size:16px}
+  .cap-text.long{font-size:14.5px}
+  .card,.card.expanded{top:50px;bottom:40px;max-height:none;width:min(440px,52%);padding:10px 14px 8px}
+  .card:not(.expanded){top:auto}
+  .card h2{font-size:19px}
+  .ctrl,.story-pill{bottom:40px}
+  .timeline{gap:8px;padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .tl-name{display:none}
+  .cine .letterbox{height:0}
+  .sermon,.sermon.side{left:calc(var(--gutter) + 38%);right:var(--gutter);width:auto;top:auto;bottom:44px}
+  .sermon-h{display:none}
+  .sermon-l{padding:8px 14px}
+  .sermon-l .ar{font-size:20px;line-height:1.45}
+  .sermon-l p{font-size:15px;margin-top:4px}
+  .roll{top:50px;width:min(280px,36%)}
+  .roll-h,.roll-i:not(.new),.roll-i i{display:none}
+  .mapcard svg{width:auto;max-height:76vh;max-width:44vw}
+  .intro{align-items:flex-start}
+  .intro-inner{padding-block:56px 20px}
+  .intro h1{font-size:40px}
+  .intro-credit{position:static;display:table;margin:16px 0 0 auto}
+}
+/* the one-time hint to turn a phone sideways */
+.rotate-hint{position:absolute;left:0;right:0;margin-inline:auto;width:max-content;bottom:calc(160px + 3vh + env(safe-area-inset-bottom,0px));z-index:12;display:flex;align-items:center;gap:10px;max-width:calc(100% - 2*var(--gutter));box-sizing:border-box;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--ivory);font-size:13.5px;line-height:1.35;cursor:pointer;transition:opacity .5s ease}
+.rotate-hint svg{flex:none;width:26px;height:26px;fill:none;stroke:var(--gold);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;animation:tilt 2.4s ease-in-out infinite}
+.rotate-hint.gone{opacity:0;pointer-events:none}
+@keyframes tilt{0%,30%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){.rotate-hint svg{animation:none}}
 @media (prefers-reduced-motion:reduce){
   .btn.primary.ready{animation:none}
   .overlay,.fade,.mapcard,.card{transition:none}

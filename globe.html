@@ -11,6 +11,7 @@
 
   <div class="top-bar">
     <div class="brand">
+      <a class="home-link" href="./">← Tārīkh al-Shi'a</a>
       <h1>Shia Globe</h1>
       <span>The 12 Imams (23 BH–329 AH)</span>
     </div>
@@ -61,20 +62,22 @@
   <div id="globeViz"></div>
 
   <div class="side-panel" id="sidePanel">
+    <!-- phones: the panel is a sheet that opens as a strip; this handle (or the name) opens the rest -->
+    <button class="sheet-handle" id="sheetHandle" type="button" aria-expanded="false" aria-controls="panelBodyContent" aria-label="Show biography and events" onclick="toggleSheet()"><span></span></button>
     <div class="panel-header">
       <div class="panel-nav">
-        <button class="icon-btn" title="Previous Imam" onclick="prevImam()">
+        <button class="icon-btn" title="Previous Imam" aria-label="Previous Imam" onclick="prevImam()">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </button>
-        <button class="icon-btn" title="Next Imam" onclick="nextImam()">
+        <button class="icon-btn" title="Next Imam" aria-label="Next Imam" onclick="nextImam()">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </button>
       </div>
-      <button class="close-btn" onclick="closePanel()">✕</button>
+      <button class="close-btn" aria-label="Close" onclick="closePanel()">✕</button>
       <div id="panelHeaderContent"></div>
     </div>
     <div class="panel-content" id="panelBodyContent"></div>
@@ -85,16 +88,16 @@
       <div class="year-val" id="yearVal">40</div>
       <div class="year-sub">AH (After Hijrah)</div>
     </div>
-    <div style="flex:1">
-      <input type="range" id="timeSlider" min="-23" max="330" value="40" step="1">
-      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--secondary-text); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px;">
+    <div class="timeline-track">
+      <input type="range" id="timeSlider" min="-23" max="330" value="40" step="1" aria-label="Year (AH)">
+      <div class="timeline-labels">
         <span>Birth of Ali (-23)</span>
         <span>Occultation (329)</span>
       </div>
     </div>
   </div>
 
-  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="https://unpkg.com/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
   <script src="./assets/js/globe.js"></script>
 </body>
 </html>

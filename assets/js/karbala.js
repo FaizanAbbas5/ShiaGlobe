@@ -65,7 +65,8 @@ function dunes(x, z, amp, sc) {
 const canvas = $('gl');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // no multisampling on the canvas: every frame is drawn through the composer, whose last pass only copies an image
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 } catch (err) {
   $('loadMsg').textContent = 'This prototype needs WebGL, which is turned off in this browser.';
   throw err;
@@ -93,12 +94,21 @@ function applyViewOffset() {
   else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
+// The shots are composed for wide screens. On a tall (phone) screen the width of view is what gets lost, so the view
+// widens until it keeps at least PORTRAIT_HFOV degrees across.
+const PORTRAIT_HFOV = 40;
+function viewFov(w, h) {
+  const a = w / h;
+  if (a >= 1) return 40;
+  const hf = PORTRAIT_HFOV * Math.PI / 180;
+  return clamp(2 * Math.atan(Math.tan(hf / 2) / a) * 180 / Math.PI, 40, 82);
+}
 function resize() {
   const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
   renderer.setSize(w, h, false);
   composer.setSize(w, h);
   camera.aspect = w / h;
-  camera.fov = w < h ? 58 : 40;
+  camera.fov = viewFov(w, h);
   applyViewOffset();
   PSCALE.value = h * renderer.getPixelRatio() * .5 / Math.tan(camera.fov * Math.PI / 360);
 }
@@ -149,17 +159,15 @@ function rugTex(base, band, motif, seed) {
   });
 }
 const RUG_A = rugTex('#8e2a22', '#1f2a55', '#e3cf9c', 1), RUG_B = rugTex('#23305e', '#9b3024', '#e0c48a', 2), RUG_C = rugTex('#6b4a22', '#e0c48a', '#3a2412', 3);
+// the howdah cover: plain cloth with gold bands near the hem (the canvas runs from the crown, top, to the hem, bottom)
 function clothTex(base, gold) {
-  return canvasTex(256, 128, (g, w, h) => {
+  return canvasTex(4, 256, (g, w, h) => {
     g.fillStyle = base; g.fillRect(0, 0, w, h);
     g.fillStyle = gold;
-    for (const y of [10, 110]) g.fillRect(0, y, w, 8);
-    for (let x = 8; x < w; x += 24) { g.beginPath(); g.moveTo(x, 40); g.lineTo(x + 8, 52); g.lineTo(x, 64); g.lineTo(x - 8, 52); g.closePath(); g.fill(); }
-    g.fillRect(0, 76, w, 3);
-    for (let x = 20; x < w; x += 24) { g.beginPath(); g.arc(x, 92, 4, 0, TAU); g.fill(); }
+    for (const [a, b] of [[.8, .815], [.87, .88], [.95, .975]]) g.fillRect(0, a * h, w, (b - a) * h);
   });
 }
-const CLOTH_GREEN = clothTex('#1f4d3a', '#d8b24c'), CLOTH_RED = clothTex('#6e1f24', '#d8b24c'), CLOTH_BLUE = clothTex('#1f2b55', '#d8b24c');
+const CLOTH_GREEN = clothTex('#30614b', '#d8b24c'), CLOTH_RED = clothTex('#6e1f24', '#d8b24c'), CLOTH_BLUE = clothTex('#28376a', '#d8b24c');
 const BANNER_TEX = canvasTex(256, 170, (g, w, h) => {
   g.fillStyle = '#1d6a47'; g.fillRect(0, 0, w, h);
   g.strokeStyle = '#e0bc55'; g.lineWidth = 10; g.strokeRect(8, 8, w - 16, h - 16);
@@ -238,6 +246,46 @@ scene.add(key, key.target);
 const fill = new THREE.DirectionalLight(0xffffff, 0);
 scene.add(fill, fill.target);
 const lightDir = new THREE.Vector3(0, 1, 0);
+// The fires, lamps, lanterns and lights of the story are not drawn as lights themselves: each frame a fixed set of four
+// lights takes the place of the four that matter most where the camera is. The number of lights never changes, so no
+// material ever has to rebuild its shaders when a light comes into view or goes out (in Edge on Windows each rebuilt
+// shader takes a quarter of a second; a scene's worth froze the picture for seconds). Four, because every light costs
+// every pixel and most steps have no more than three shining at once (the few with more lose their faintest).
+const POOL_N = 4, LIGHT_POOL = [], VLIGHTS = [], PL_V = new THREE.Vector3();
+for (let i = 0; i < POOL_N; i++) { const L = new THREE.PointLight(0xffffff, 0, 1, 2); L.userData.pool = true; scene.add(L); LIGHT_POOL.push(L); }
+// a light joins the stand-ins the moment it is added to anything (a single frame drawn with it counted as a light of
+// its own would build every shader in view again)
+let lightsDirty = true;
+const ADD0 = THREE.Object3D.prototype.add;
+THREE.Object3D.prototype.add = function (...objs) {
+  if (!lightsDirty) for (const o of objs) { if (o && o.isObject3D) o.traverse(c => { if (c.isPointLight && !c.userData.pool) lightsDirty = true; }); }
+  return ADD0.apply(this, objs);
+};
+function scanLights() {
+  lightsDirty = false;
+  scene.traverse(o => { if (o.isPointLight && !o.userData.pool && !o.userData.virtual) { o.userData.virtual = true; o.layers.set(31); VLIGHTS.push(o); } });
+}
+function shownLight(L) {
+  if (!(L.intensity > 0)) return false;
+  let o = L, top = L; while (o && o.visible) { top = o; o = o.parent; }
+  return !o && top === scene;                                              // not hidden, and in the scene
+}
+function updateLightPool() {
+  if (lightsDirty) scanLights();
+  const cand = [];
+  for (const L of VLIGHTS) {
+    if (!shownLight(L)) continue;
+    L.getWorldPosition(PL_V);
+    const reach = (L.distance || 80) + 25, d = Math.min(PL_V.distanceTo(camera.position), PL_V.distanceTo(focus));
+    if (d < reach) cand.push({ k: L.intensity * (1 - d / reach), L, at: PL_V.clone() });
+  }
+  cand.sort((a, b) => b.k - a.k);
+  for (let i = 0; i < POOL_N; i++) {
+    const P = LIGHT_POOL[i], c = cand[i];
+    if (!c) { P.intensity = 0; continue; }
+    P.position.copy(c.at); P.color.copy(c.L.color); P.intensity = c.L.intensity; P.distance = c.L.distance; P.decay = c.L.decay;
+  }
+}
 
 const ENV_DEF = {
   night: { top: '#070c20', horizon: '#26375f', bottom: '#0e121c', sun: '#aabdff', key: '#b3c4ff', keyI: 1.7, dir: [-.58, .24, -.66], hemiS: '#5068a8', hemiG: '#3a2c20', hemiI: 1.8, fillI: .7, fog: '#1b2644', fogD: .0032, stars: 1, moon: 27.6, exposure: 1.35, glow: .5, disk: 0, envI: .5, bloomT: .86, bloomS: .55 },
@@ -306,9 +354,9 @@ const M = {
   rugA: new THREE.MeshStandardMaterial({ map: RUG_A, roughness: 1 }),
   rugB: new THREE.MeshStandardMaterial({ map: RUG_B, roughness: 1 }),
   rugC: new THREE.MeshStandardMaterial({ map: RUG_C, roughness: 1 }),
-  clothG: new THREE.MeshStandardMaterial({ map: CLOTH_GREEN, roughness: .85, side: THREE.DoubleSide }),
-  clothR: new THREE.MeshStandardMaterial({ map: CLOTH_RED, roughness: .85, side: THREE.DoubleSide }),
-  clothB: new THREE.MeshStandardMaterial({ map: CLOTH_BLUE, roughness: .85, side: THREE.DoubleSide }),
+  clothG: new THREE.MeshStandardMaterial({ map: CLOTH_GREEN, vertexColors: true, roughness: .85, side: THREE.DoubleSide }),
+  clothR: new THREE.MeshStandardMaterial({ map: CLOTH_RED, vertexColors: true, roughness: .85, side: THREE.DoubleSide }),
+  clothB: new THREE.MeshStandardMaterial({ map: CLOTH_BLUE, vertexColors: true, roughness: .85, side: THREE.DoubleSide }),
   window: new THREE.MeshStandardMaterial({ color: '#2a1a0c', emissive: '#ffae55', emissiveIntensity: 3.2 }),
   caravanLamp: new THREE.MeshStandardMaterial({ color: '#ffd9a0', emissive: '#ffb15a', emissiveIntensity: 7 }),
   campLamp: new THREE.MeshStandardMaterial({ color: '#ffd9a0', emissive: '#ffb15a', emissiveIntensity: 7 }),
@@ -415,7 +463,22 @@ class GlowPoints {
 // ─────────── model loading ───────────
 const b64 = s => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
 const gltfLoader = new GLTFLoader();
-const parseGLB = s => new Promise((res, rej) => gltfLoader.parse(b64(s), '', res, rej));
+// The models are stored quantized (small integers instead of floats) to keep the download small;
+// they are unpacked to plain floats here so that every part of a model can be merged and posed as before.
+function dequantize(root) {
+  const GET = ['getX', 'getY', 'getZ', 'getW'];
+  root.traverse(o => {
+    const g = o.geometry; if (!g) return;
+    for (const name of Object.keys(g.attributes)) {
+      const a = g.attributes[name], T = name === 'skinIndex' ? Uint16Array : Float32Array;
+      if (a.array instanceof T && !a.normalized && !a.isInterleavedBufferAttribute) continue;
+      const n = a.count, s = a.itemSize, arr = new T(n * s);
+      for (let i = 0; i < n; i++) for (let c = 0; c < s; c++) arr[i * s + c] = a[GET[c]](i);
+      g.setAttribute(name, new THREE.BufferAttribute(arr, s));
+    }
+  });
+}
+const parseGLB = s => new Promise((res, rej) => gltfLoader.parse(b64(s), '', g => { dequantize(g.scene); res(g); }, rej));
 
 function normalized(obj, height, { tintLeaves = false, stone = null } = {}) {
   obj.updateMatrixWorld(true);
@@ -646,24 +709,37 @@ class Noor {
     NOOR_MOTES.emit(noorV.x + (Math.random() - .5) * .35 * s, noorV.y - .05, noorV.z + (Math.random() - .5) * .35 * s, (Math.random() - .5) * .08, .25 + Math.random() * .2, (Math.random() - .5) * .08, 2.4, .07 * s, .02, .9);
   }
 }
+// the veil over a companion's face: the face-shaped part, unlit, a soft pale light
+const FACE_VEIL_MAT = new THREE.MeshBasicMaterial({ color: new THREE.Color(.93, .9, .82), vertexColors: true, transparent: true, depthWrite: false, fog: false });
+// howdah: modelled in Blender (a cloth dropped over a ribbed frame with the cloth simulator; the shading of the
+// folds is baked into the vertex colours). The tassels are one shape repeated at the hem points stored with the model.
+let HOWDAH = null;
+function prepHowdah(gltf) {
+  const H = {};
+  gltf.scene.updateMatrixWorld(true);
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    H[o.name.replace('howdah_', '')] = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    if (o.userData.anchors) H.anchors = JSON.parse(o.userData.anchors);   // x, y, z and shading per tassel
+  });
+  H.goldMat = M.gold.clone(); H.goldMat.vertexColors = true;
+  H.woodMat = M.darkWood.clone(); H.woodMat.vertexColors = true;
+  H.tasselMat = new THREE.MeshStandardMaterial({ color: '#d9b24a', metalness: .6, roughness: .55 });
+  return H;
+}
 function decorateCamel(c, kind, idx) {
   const T = c.tpl;
   const top = new THREE.Group();
   top.position.set(0, T.humpY - .1, T.humpZ);
   c.body.add(top); c.top = top;
   if (kind === 'howdah') {
-    const cloth = [M.clothG, M.clothR, M.clothB][idx % 3];
-    const base = new THREE.Mesh(new THREE.BoxGeometry(1.25, .2, 1.5), M.darkWood); base.position.y = .1;
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(.78, 20, 10, 0, TAU, 0, Math.PI / 2), cloth);
-    dome.scale.set(1, 1.15, 1.18); dome.position.y = .2;
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(.8, .86, .5, 20, 1, true), cloth); skirt.position.y = -.02;
-    const fin = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), M.gold); fin.position.y = 1.15;
-    const spike = new THREE.Mesh(new THREE.ConeGeometry(.04, .22, 8), M.gold); spike.position.y = 1.3;
-    [base, dome, skirt, fin, spike].forEach(o => { o.castShadow = true; top.add(o); });
-    for (let k = 0; k < 16; k++) {
-      const a = k / 16 * TAU, tas = new THREE.Mesh(new THREE.ConeGeometry(.03, .14, 5), M.gold);
-      tas.position.set(Math.cos(a) * .84, -.3, Math.sin(a) * .84); tas.rotation.x = Math.PI; top.add(tas);
-    }
+    const HD = HOWDAH;
+    const cloth = new THREE.Mesh(HD.cloth, [M.clothG, M.clothR, M.clothB][idx % 3]);
+    const fin = new THREE.Mesh(HD.gold, HD.goldMat), base = new THREE.Mesh(HD.frame, HD.woodMat);
+    [cloth, fin, base].forEach(o => { o.castShadow = true; top.add(o); });
+    const A = HD.anchors, n = A.length / 4, tas = new THREE.InstancedMesh(HD.tassel, HD.tasselMat, n), m4 = new THREE.Matrix4(), col = new THREE.Color();
+    for (let k = 0; k < n; k++) { tas.setMatrixAt(k, m4.makeTranslation(A[k * 4], A[k * 4 + 1], A[k * 4 + 2])); tas.setColorAt(k, col.setScalar(A[k * 4 + 3])); }
+    top.add(tas);
     c.noor = new Noor(.9); c.noor.group.position.set(0, 2.05, .05); top.add(c.noor.group);
   } else if (kind === 'rider') {
     const rug = [M.rugA, M.rugB, M.rugC][idx % 3];
@@ -672,7 +748,7 @@ function decorateCamel(c, kind, idx) {
     const seat = new THREE.Mesh(new THREE.BoxGeometry(.62, .1, .7), M.leather); seat.position.y = .12; top.add(seat);
     const roll = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, 1.05, 10), [M.rugB, M.rugC, M.rugA][idx % 3]); roll.rotation.z = Math.PI / 2; roll.position.set(0, .1, -.5); roll.castShadow = true; top.add(roll);
     if (RIDER_CIVIL.length) {
-      const rm = new THREE.Mesh(RIDER_CIVIL[idx % RIDER_CIVIL.length], VC_MAT); rm.position.set(0, .2, .06); rm.castShadow = true; top.add(rm); c.riderMesh = rm;
+      const rm = new THREE.Mesh(RIDER_CIVIL[idx % RIDER_CIVIL.length], VC_MAT); rm.position.set(0, CAMEL_SEAT, .06); rm.castShadow = true; top.add(rm); c.riderMesh = rm;
       if (RIDER_HANDS && T.nose) {
         const [hl, hr] = RIDER_HANDS.civil[0].map(h => h.clone().add(rm.position).add(top.position)), mid = hl.clone().lerp(hr, .5);
         const pts = [hl, mid.clone().add(new THREE.Vector3(0, -.05, 0)), hr, mid, new THREE.Vector3(0, T.nose[0] - .05, T.nose[1] - .1)];
@@ -709,16 +785,74 @@ function onlyAttrs(g, keep) {
   g.morphAttributes = {};
   return g.index ? g.toNonIndexed() : g;
 }
+// smooth normals for an unindexed mesh: each corner gets the (area-weighted) average of the faces meeting at its position
+function smoothNormals(g) {
+  const P = g.attributes.position, n = P.count, sum = new Map(), keys = new Array(n), N = new Float32Array(n * 3);
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  const key = i => Math.round(P.getX(i) * 2e3) + ',' + Math.round(P.getY(i) * 2e3) + ',' + Math.round(P.getZ(i) * 2e3);
+  for (let i = 0; i < n; i += 3) {
+    a.fromBufferAttribute(P, i); b.fromBufferAttribute(P, i + 1); c.fromBufferAttribute(P, i + 2);
+    c.sub(b); a.sub(b); c.cross(a);
+    for (let k = i; k < i + 3; k++) { const s = sum.get(keys[k] = key(k)) || [0, 0, 0]; s[0] += c.x; s[1] += c.y; s[2] += c.z; sum.set(keys[k], s); }
+  }
+  for (let i = 0; i < n; i++) { const s = sum.get(keys[i]), l = Math.hypot(s[0], s[1], s[2]) || 1; N[i * 3] = s[0] / l; N[i * 3 + 1] = s[1] / l; N[i * 3 + 2] = s[2] / l; }
+  g.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+  return g;
+}
 // rider: a rigged character posed in the saddle and baked to one mesh per colour variant,
-// with two morph targets (leaning into a gallop with the lance lowered, and turning to look around)
+// with two morph targets (leaning into a gallop with the lance lowered, and turning to look around);
+// used for the riders on camels (horsemen are live riders), so it is posed for the camel's saddle
+// The rider model (built in Blender on a CC0 base) wears his own robe, turban and sandals, and his hands are
+// already closed round the reins. His skirt was draped over this horse and its saddle, so he sits where it was
+// draped: hips RIDER_SEAT above the horse's torso bone, legs along these directions (measured against the horse).
+// On a camel he wears a second skirt, draped over the camel's saddle rug, with his legs over the rug.
+const RIDER_SEAT = .436, RIDER_THIGH = [.516, -.662, .543], RIDER_SHIN = [-.04, -.99, -.139];
+const CAMEL_SEAT = .225, CAMEL_THIGH = [.353, -.802, .481], CAMEL_SHIN = [.337, -.937, -.094];
 const RIDER_VARIANTS = [
-  { Green: '#5b2420', LightGreen: '#7a3a2e', turban: '#e6dccb' },
-  { Green: '#2b3050', LightGreen: '#3d4468', turban: '#e6dccb' },
-  { Green: '#6b5a3c', LightGreen: '#8a7552', turban: '#2a2a30' },
-  { Green: '#2a2826', LightGreen: '#403c38', turban: '#d9c9a8' },
+  { Robe: '#5b2420', Turban: '#e6dccb' },
+  { Robe: '#2b3050', Turban: '#e6dccb' },
+  { Robe: '#6b5a3c', Turban: '#2a2a30' },
+  { Robe: '#2a2826', Turban: '#d9c9a8' },
 ];
-const RIDER_BASE = { Brown: '#4a3322', Brown2: '#5e4430', Grey: '#6d6f72', Black: '#1e1a18', Gold: '#a88a3e', Hair: '#1c1510', Eyebrows: '#1c1510' };
-function prepRider(gltf) {
+const RIDER_BASE = { Leather: '#4a3322', Hair: '#1c1510', Eyebrows: '#1c1510' };
+// the skin and eyes keep the colours baked from the model's textures (as RGB, whatever the file stored)
+const RIDER_BAKED = ['Skin', 'Eyes'];
+function bakedRGB(g) {
+  const C = g.attributes.color; if (!C || C.itemSize === 3) return g;
+  const n = C.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { a[i * 3] = C.getX(i); a[i * 3 + 1] = C.getY(i); a[i * 3 + 2] = C.getZ(i); }
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
+}
+// a closed fist: the middle of the hole the fingers close round, and the line through it (pinky side to index side,
+// turned upward), which is where a lance or a staff is held
+function riderFist(rb, sd) {
+  const c = new THREE.Vector3(), p = new THREE.Vector3(); let n = 0;
+  for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let k = 1; k <= 4; k++) { const b = rb[f + k + sd]; if (b) { c.add(b.getWorldPosition(p)); n++; } }
+  c.divideScalar(n || 1);
+  const dir = rb['Index1' + sd].getWorldPosition(new THREE.Vector3()).sub(rb['Pinky1' + sd].getWorldPosition(p)).normalize();
+  if (dir.y < 0) dir.negate();
+  return { at: c, dir, q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir) };
+}
+// the right wrist turns so that the fist holds the lance upright, leaning back a little
+const LANCE_UP = new THREE.Vector3(0, Math.cos(-.12), Math.sin(-.12));
+function holdLance(rb, setWorldQ) {
+  const f = riderFist(rb, 'R');
+  setWorldQ(rb.WristR, new THREE.Quaternion().setFromUnitVectors(f.dir, LANCE_UP).multiply(rb.WristR.getWorldQuaternion(new THREE.Quaternion())));
+}
+// legs astride the horse; the foot is the shin's child in this model, so the shin aims at it
+function riderLegs(rb, SX, shinLen, footQ, aim, setWorldQ, upd, V, Q, AX, thigh = RIDER_THIGH, shinDir = RIDER_SHIN) {
+  for (const sd of ['L', 'R']) {
+    const sx = SX[sd];
+    aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], V().set(sx * thigh[0], thigh[1], thigh[2]));
+    const shin = V().set(sx * shinDir[0], shinDir[1], shinDir[2]).normalize(), foot = rb['Foot' + sd];
+    aim(rb['LowerLeg' + sd], foot, shin);
+    if (foot.parent !== rb['LowerLeg' + sd]) { foot.position.copy(foot.parent.worldToLocal(rb['LowerLeg' + sd].getWorldPosition(V()).addScaledVector(shin, shinLen[sd]))); upd(); }
+    setWorldQ(foot, Q().setFromAxisAngle(AX, .25).multiply(footQ[sd]));
+  }
+}
+function prepRider(gltf, mount = 'camel') {
+  const horse = mount === 'horse';
   const rr = gltf.scene; rr.updateMatrixWorld(true);
   const rb = {}; rr.traverse(o => { if (o.isBone) rb[o.name] = o; });
   const V = () => new THREE.Vector3(), Q = () => new THREE.Quaternion(), upd = () => rr.updateMatrixWorld(true);
@@ -735,32 +869,13 @@ function prepRider(gltf) {
     shinLen[sd] = rb['LowerLeg' + sd].getWorldPosition(V()).distanceTo(rb['Foot' + sd].getWorldPosition(V()));
     footQ[sd] = rb['Foot' + sd].getWorldQuaternion(Q());
   }
-  // the feet are IK controls (not children of the shins), so each is moved to the end of its posed shin
-  const legs = () => {
-    for (const sd of ['L', 'R']) {
-      const sx = SX[sd];
-      aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], V().set(sx * .22, -.62, .7));
-      const shin = V().set(-sx * .07, -1, -.12).normalize();
-      aimY(rb['LowerLeg' + sd], shin);
-      const foot = rb['Foot' + sd];
-      foot.position.copy(foot.parent.worldToLocal(rb['LowerLeg' + sd].getWorldPosition(V()).addScaledVector(shin, shinLen[sd])));
-      upd();
-      setWorldQ(foot, Q().setFromAxisAngle(AX, .25).multiply(footQ[sd]));
-    }
-  };
+  const legs = () => horse ? riderLegs(rb, SX, shinLen, footQ, aim, setWorldQ, upd, V, Q, AX) : riderLegs(rb, SX, shinLen, footQ, aim, setWorldQ, upd, V, Q, AX, CAMEL_THIGH, CAMEL_SHIN);
   const arms = lean => {
     const L = SX.L, R = SX.R;
     aim(rb.UpperArmL, rb.LowerArmL, V().set(L * .14, -.97 + lean * .35, .18 + lean * .55));
     aim(rb.LowerArmL, rb.WristL, V().set(-L * .38, -.78 + lean * .45, .5 + lean * .4));
     aim(rb.UpperArmR, rb.LowerArmR, V().set(R * .2, -.97 + lean * .4, .1 + lean * .6));
     aim(rb.LowerArmR, rb.WristR, V().set(R * .06, -.5 + lean * .3, .86));
-  };
-  const fingers = () => {
-    for (const [sd, sign] of [['L', 1], ['R', -1]]) {
-      for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let k = 1; k <= 3; k++) { const b = rb[f + k + sd]; if (b) b.rotateX(sign * 1.15); }
-      for (let k = 2; k <= 3; k++) { const b = rb['Thumb' + k + sd]; if (b) b.rotateX(sign * .6); }
-    }
-    upd();
   };
   // both hands low in front, holding the reins
   const armsReins = lean => {
@@ -771,33 +886,29 @@ function prepRider(gltf) {
   };
   let armsFn = arms;
   const POSES = {
-    base: () => { legs(); armsFn(0); fingers(); },
-    gallop: () => { legs(); turn(rb.Torso, AX, .2); turn(rb.Chest, AX, .1); turn(rb.Head, AX, -.24); armsFn(1); fingers(); if (armsFn === arms) turn(rb.WristR, AX, .95); },
-    look: () => { legs(); turn(rb.Chest, AY, .2); turn(rb.Head, AY, .55); armsFn(0); fingers(); },
+    base: () => { legs(); armsFn(0); if (armsFn === arms) holdLance(rb, setWorldQ); },
+    gallop: () => { legs(); turn(rb.Torso, AX, .2); turn(rb.Chest, AX, .1); turn(rb.Head, AX, -.24); armsFn(1); if (armsFn === arms) { holdLance(rb, setWorldQ); turn(rb.WristR, AX, .95); } },
+    look: () => { legs(); turn(rb.Chest, AY, .2); turn(rb.Head, AY, .55); armsFn(0); if (armsFn === arms) holdLance(rb, setWorldQ); },
   };
   restore(); POSES.base();
-  const hips = rb.Hips.getWorldPosition(V()), head = rb.Head.getWorldPosition(V()), wr = rb.WristR.getWorldPosition(V());
-  const bodyMeshes = []; rr.traverse(o => { if (o.isMesh && !/Sword|Backpack/.test(o.name)) bodyMeshes.push(o); });
-  // accessories follow the bone they are attached to in every pose
-  const lanceDir = new THREE.Vector3(0, Math.cos(-.12), Math.sin(-.12)), lanceC = wr.clone().add(new THREE.Vector3(0, .9, .06));
+  const hips = rb.Hips.getWorldPosition(V());
+  const bodyMeshes = []; rr.traverse(o => { if (o.isMesh && o.name !== (horse ? 'skirt_camel' : 'skirt')) bodyMeshes.push(o); });
+  // accessories follow the bone they are attached to in every pose; the lance runs through the right fist
+  const fist = riderFist(rb, 'R');
   const accDefs = [
-    [new THREE.TorusGeometry(.115, .05, 8, 18), head.clone().add(V().set(0, .22, -.01)), [Math.PI / 2, 0, 0], 'turban', 1, rb.Head],
-    [new THREE.TorusGeometry(.105, .045, 8, 18), head.clone().add(V().set(0, .26, -.015)), [Math.PI / 2 - .25, 0, 0], 'turban', 1, rb.Head],
-    [new THREE.SphereGeometry(.12, 14, 10, 0, TAU, 0, Math.PI / 2), head.clone().add(V().set(0, .22, -.01)), [0, 0, 0], 'turban', 1, rb.Head],
-    [new THREE.BoxGeometry(.2, .32, .01), head.clone().add(V().set(0, .06, -.13)), [.15, 0, 0], 'turban', 1, rb.Head],
-    [new THREE.CylinderGeometry(.018, .022, 3.3, 6), lanceC, [-.12, 0, 0], 'wood', 1, rb.WristR],
-    [new THREE.ConeGeometry(.045, .3, 6), lanceC.clone().addScaledVector(lanceDir, 1.8), [-.12, 0, 0], 'steel', 1, rb.WristR],
+    [new THREE.CylinderGeometry(.018, .022, 3.3, 6), fist.at.clone().addScaledVector(fist.dir, .9), fist.q, 'wood', 1, rb.WristR],
+    [new THREE.ConeGeometry(.045, .3, 6), fist.at.clone().addScaledVector(fist.dir, 2.7), fist.q, 'steel', 1, rb.WristR],
     [new THREE.CylinderGeometry(.3, .3, .05, 18), hips.clone().add(V().set(.05, .45, -.19)), [Math.PI / 2, 0, 0], 'shield', .72, rb.Chest],
     [new THREE.SphereGeometry(.07, 8, 6), hips.clone().add(V().set(.05, .45, -.22)), [0, 0, 0], 'steel', 1, rb.Chest],
   ].map(([geo, pos, rot, key, scl, bone]) => {
-    const m = new THREE.Matrix4().compose(pos, Q().setFromEuler(new THREE.Euler(...rot)), V().setScalar(scl));
+    const m = new THREE.Matrix4().compose(pos, rot.isQuaternion ? rot : Q().setFromEuler(new THREE.Euler(...rot)), V().setScalar(scl));
     return { g: onlyAttrs(geo.applyMatrix4(m), ['position']).applyMatrix4(bone.matrixWorld.clone().invert()), key, bone };
   });
   const snapshot = () => ({
     body: bodyMeshes.map(o => {
       const g = o.geometry.clone(), P = g.attributes.position, v = V();
       for (let i = 0; i < P.count; i++) { if (o.isSkinnedMesh) o.getVertexPosition(i, v); else v.fromBufferAttribute(o.geometry.attributes.position, i); v.applyMatrix4(o.matrixWorld).sub(hips); P.setXYZ(i, v.x, v.y, v.z); }
-      return onlyAttrs(g, ['position']);
+      return onlyAttrs(g, RIDER_BAKED.includes(o.material.name) && g.attributes.color ? ['position', 'color'] : ['position']);
     }),
     acc: accDefs.map(a => a.g.clone().applyMatrix4(a.bone.matrixWorld).translate(-hips.x, -hips.y, -hips.z)),
   });
@@ -809,31 +920,27 @@ function prepRider(gltf) {
   restore(); POSES.base(); const baseC = snapshot(), handsBaseC = handsNow();
   restore(); POSES.gallop(); const gallopC = snapshot(), handsGalC = handsNow();
   restore(); POSES.look(); const lookC = snapshot();
-  const mergePose = (P, colors) => mergeGeometries([
-    ...P.body.map((g, i) => colors ? colorize(g.clone(), colors.body[i]) : g),
-    ...P.acc.map((g, j) => colors ? colorize(g.clone(), colors.acc[j]) : g),
-  ]);
   const fixed = { wood: new THREE.Color('#6a4a2c'), steel: new THREE.Color('#9aa0a8'), shield: new THREE.Color('#6b4a2c') };
   const build = (keep, base, gallop, look) => {
     const idx = accDefs.map((a, j) => j).filter(j => keep(accDefs[j].key));
     const merge = (P, colors) => mergeGeometries([
-      ...P.body.map((g, i) => colors ? colorize(g.clone(), colors.body[i]) : g.clone()),
+      ...P.body.map((g, i) => !colors ? onlyAttrs(g.clone(), ['position']) : colors.body[i] ? colorize(g.clone(), colors.body[i]) : bakedRGB(g.clone())),
       ...idx.map(j => colors ? colorize(P.acc[j].clone(), colors.acc[j]) : P.acc[j].clone()),
     ]);
     const gp = merge(gallop).attributes.position, lp = merge(look).attributes.position;
     return RIDER_VARIANTS.map(vr => {
       const colors = {
-        body: bodyMeshes.map(o => vr[o.material.name] ? new THREE.Color(vr[o.material.name]) : RIDER_BASE[o.material.name] ? new THREE.Color(RIDER_BASE[o.material.name]) : o.material.color.clone()),
-        acc: accDefs.map(a => a.key === 'turban' ? new THREE.Color(vr.turban) : fixed[a.key]),
+        body: bodyMeshes.map(o => RIDER_BAKED.includes(o.material.name) && o.geometry.attributes.color ? null : new THREE.Color(vr[o.material.name] || RIDER_BASE[o.material.name] || '#' + o.material.color.getHexString())),
+        acc: accDefs.map(a => fixed[a.key]),
       };
       const g = merge(base, colors);
-      g.computeVertexNormals();
+      smoothNormals(g);
       g.morphAttributes.position = [gp, lp];
       return g;
     });
   };
   return {
-    soldier: build(() => true, base, gallop, look), civil: build(k => k === 'turban', baseC, gallopC, lookC),
+    soldier: build(() => true, base, gallop, look), civil: build(() => false, baseC, gallopC, lookC),
     hands: { soldier: [handsBase, handsGal], civil: [handsBaseC, handsGalC] },
   };
 }
@@ -919,9 +1026,11 @@ function prepHorse(gltf) {
   };
   const gold = new THREE.Color('#d2ad52'), cream = new THREE.Color('#e3d6b8'), leather = new THREE.Color('#3b2618');
   const variants = {};
+  let nBody = 0;
   for (const [name, pal] of Object.entries(HORSE_COLORS)) {
     const blanket = new THREE.Color(BLANKETS[name]);
     const body = parts.map(p => colorize(onlyAttrs(p.geometry.clone(), ['position', 'normal', 'skinIndex', 'skinWeight']), pal[p.material.name] ? new THREE.Color(pal[p.material.name]) : p.material.color.clone()));
+    nBody = body.reduce((a, g) => a + g.attributes.position.count, 0);
     const bl = tackGeo('blanket', (w, c) => { const az = Math.abs(w[2]); c.copy(az > .25 || w[1] < -.15 ? gold : az > .17 && az < .2 ? cream : blanket); });
     const seat = tackGeo('seat', (w, c) => c.copy(leather));
     variants[name] = mergeGeometries([...body, bl, seat]);
@@ -934,7 +1043,20 @@ function prepHorse(gltf) {
   root.updateMatrixWorld(true);
   const backP = back.getWorldPosition(new THREE.Vector3());
   const basePitch = Math.atan2((tor.y - backP.y), new THREE.Vector3(tor.x - backP.x, 0, tor.z - backP.z).length());
-  return { mouthLocal, root, clips: gltf.animations, s, yaw: -Math.atan2(hp.x - tp.x, hp.z - tp.z), offY: -box.min.y * s, variants, basePitch };
+  // the reins rest on the upper neck on their way to the bit (where they rested on it when the rider was draped in
+  // Blender: side, height, forward from the torso bone, in metres); each point is tied to the nearest vertex of the
+  // horse, so it follows the neck through every stride
+  const REIN_AT = [[.14, .482, 1.144], [.137, .399, 1.411]];
+  const reinPts = [-1, 1].map(sd => REIN_AT.map(([x, y, z]) => {
+    let best = Infinity, idx = 0;
+    for (let i = 0; i < nBody; i++) {
+      merged.getVertexPosition(i, v); v.applyMatrix4(merged.matrixWorld); const w = frame(v);
+      const d = (w[0] - sd * x) ** 2 + (w[1] - y) ** 2 + (w[2] - z) ** 2; if (d < best) { best = d; idx = i; }
+    }
+    merged.getVertexPosition(idx, v); v.applyMatrix4(merged.matrixWorld); const w = frame(v);
+    return { idx, off: [sd * x - w[0], y - w[1], z - w[2]] };
+  }));
+  return { mouthLocal, root, clips: gltf.animations, s, yaw: -Math.atan2(hp.x - tp.x, hp.z - tp.z), offY: -box.min.y * s, variants, basePitch, reinPts };
 }
 function makeTent(w, d, h, big) {
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
@@ -1079,14 +1201,242 @@ const HORSE_COLORS = {
 };
 // clip speeds measured from hoof motion: Walk covers ~1.05 m/s and Gallop ~4.8 m/s at normal playback
 const WALK_MS = 1.05, GALLOP_MS = 4.8, EAT_LOW = 2.8;
-const REINS_MAT = new THREE.LineBasicMaterial({ color: '#2a1c12' }), REIN_V = new THREE.Vector3(), REIN_V2 = new THREE.Vector3(), REIN_V3 = new THREE.Vector3();
+const REINS_MAT = new THREE.LineBasicMaterial({ color: '#2a1c12' }), REIN_V = new THREE.Vector3(), REIN_V2 = new THREE.Vector3(), REIN_V3 = new THREE.Vector3(), REIN_W = new THREE.Vector3();
+// reins (in the horse's frame): from each side of the bit back along that side of the neck to the hand on that side,
+// and across between the hands
+function setReins(h, hA, hB) {
+  const P = h.reins.geometry.attributes.position, bit = h.head.localToWorld(REIN_V.copy(h.tpl.mouthLocal)); h.group.worldToLocal(bit);
+  const [l, r] = hA.x <= hB.x ? [hA, hB] : [hB, hA];
+  let k = 0;
+  const put = v => P.setXYZ(k++, v.x, v.y, v.z), neck = (sd, j) => {
+    const q = h.tpl.reinPts[sd][j]; h.mesh.getVertexPosition(q.idx, REIN_W); h.mesh.localToWorld(REIN_W); h.group.worldToLocal(REIN_W);
+    put(REIN_W.set(REIN_W.x + q.off[0], REIN_W.y + q.off[1], REIN_W.z + q.off[2]));
+  };
+  P.setXYZ(k++, bit.x - .07, bit.y, bit.z); neck(0, 1); neck(0, 0);
+  put(l); P.setXYZ(k++, (l.x + r.x) / 2, (l.y + r.y) / 2 - .02, (l.z + r.z) / 2); put(r);
+  neck(1, 0); neck(1, 1); P.setXYZ(k++, bit.x + .07, bit.y, bit.z);
+  P.needsUpdate = true;
+}
 let RIDER_HANDS = null;
+// ═══════════ Live riders: a rigged rider posed every frame from the horse's own motion ═══════════
+// The hips sit on the saddle and follow the horse's back; the spine counters the tilt and absorbs the bounce
+// through a spring, the head stays level and looks around, and the rein hands stay with the horse (two-bone IK).
+// Distant riders keep the pose but skip the IK.
+const RIDER_DRESS = {
+  soldier: [
+    { tunic: '#5b2420', tunic2: '#6e2e26', pants: '#4a2a22', boots: '#2a221c', turban: '#e6dccb' },
+    { tunic: '#2b3050', tunic2: '#363c60', pants: '#2a2c3a', boots: '#241e1a', turban: '#e6dccb' },
+    { tunic: '#6b5a3c', tunic2: '#7a684a', pants: '#4e4230', boots: '#2a221c', turban: '#2a2a30' },
+    { tunic: '#2a2826', tunic2: '#34312e', pants: '#24221f', boots: '#1e1a16', turban: '#d9c9a8' },
+  ],
+  civil: [
+    { tunic: '#d9cdb4', tunic2: '#cfc2a6', pants: '#c4b696', boots: '#4a3322', turban: '#f0ebe0' },
+    { tunic: '#8a6d4a', tunic2: '#7d6243', pants: '#6e5638', boots: '#3a2a1c', turban: '#e8e2d4' },
+    { tunic: '#3d4a66', tunic2: '#45536f', pants: '#353f56', boots: '#2a221c', turban: '#e8e2d4' },
+    { tunic: '#5d4a3a', tunic2: '#685342', pants: '#4f3f31', boots: '#2a1e16', turban: '#2a2522' },
+  ],
+};
+const LR_V = Array.from({ length: 13 }, () => new THREE.Vector3()), LR_Q = Array.from({ length: 6 }, () => new THREE.Quaternion());
+const RIDER_FAR = 32;   // metres from the camera beyond which a soldier is drawn as the light rider
+const LR_UP = new THREE.Vector3(0, 1, 0);
+
+// rotate a bone by a world-space rotation, keeping its children attached
+function lrTurnWorld(bone, q) {
+  const pw = bone.parent.getWorldQuaternion(LR_Q[0]), bw = bone.getWorldQuaternion(LR_Q[1]);
+  bone.quaternion.copy(pw.invert().multiply(q.multiply(bw)));
+  bone.updateMatrixWorld(true);
+}
+function lrSetWorldQ(bone, q) {
+  bone.quaternion.copy(bone.parent.getWorldQuaternion(LR_Q[0]).invert().multiply(q));
+  bone.updateMatrixWorld(true);
+}
+// point a bone so that its child ends up on a world-space target
+function lrAim(bone, child, target) {
+  const bp = bone.getWorldPosition(LR_V[0]), cur = child.getWorldPosition(LR_V[1]).sub(bp).normalize(), want = LR_V[2].copy(target).sub(bp).normalize();
+  lrTurnWorld(bone, LR_Q[2].setFromUnitVectors(cur, want));
+}
+// two-bone IK: shoulder → elbow → wrist reaching a target, the elbow bending towards a pole direction
+function lrReach(upper, lower, end, target, pole) {
+  const a = upper.getWorldPosition(LR_V[3]), b = lower.getWorldPosition(LR_V[4]), c = end.getWorldPosition(LR_V[5]);
+  const l1 = a.distanceTo(b), l2 = b.distanceTo(c), dir = LR_V[6].copy(target).sub(a);
+  const d = clamp(dir.length(), Math.abs(l1 - l2) + 1e-3, l1 + l2 - 1e-3); dir.normalize();
+  const x = (l1 * l1 - l2 * l2 + d * d) / (2 * d), y = Math.sqrt(Math.max(0, l1 * l1 - x * x));
+  const p = LR_V[7].copy(pole).addScaledVector(dir, -pole.dot(dir)).normalize();
+  const elbow = LR_V[8].copy(a).addScaledVector(dir, x).addScaledVector(p, y), wrist = LR_V[9].copy(a).addScaledVector(dir, d);
+  lrAim(upper, lower, elbow);
+  lrAim(lower, end, wrist);
+}
+
+function prepLiveRider(gltf) {
+  const root = SkeletonUtils.clone(gltf.scene);
+  const parts = [];
+  root.traverse(o => { if (o.isSkinnedMesh) parts.push(o); });
+  const body = parts.filter(p => p.name !== 'skirt_camel'), first = body[0], skel = first.skeleton;
+  if (!body.every(p => p.skeleton.bones.length === skel.bones.length && p.skeleton.bones.every((b, i) => b === skel.bones[i]))) return null;
+  root.updateMatrixWorld(true);   // the source scene is still in its rest pose (prepared before the baked riders)
+  const rb = {}; root.traverse(o => { if (o.isBone) rb[o.name] = o; });
+  const names = Object.keys(rb), BL = names.map(n => rb[n]);
+  const V = () => new THREE.Vector3(), Q = () => new THREE.Quaternion(), upd = () => root.updateMatrixWorld(true);
+  const setWorldQ = (bone, q) => { bone.quaternion.copy(bone.parent.getWorldQuaternion(Q()).invert().multiply(q)); upd(); };
+  const aim = (bone, child, dir) => { upd(); const cur = child.getWorldPosition(V()).sub(bone.getWorldPosition(V())).normalize(); setWorldQ(bone, Q().setFromUnitVectors(cur, dir.clone().normalize()).multiply(bone.getWorldQuaternion(Q()))); };
+  const aimY = (bone, dir) => { upd(); const bq = bone.getWorldQuaternion(Q()); setWorldQ(bone, Q().setFromUnitVectors(V().set(0, 1, 0).applyQuaternion(bq), dir.clone().normalize()).multiply(bq)); };
+  const turn = (bone, axis, ang) => { upd(); setWorldQ(bone, Q().setFromAxisAngle(axis, ang).multiply(bone.getWorldQuaternion(Q()))); };
+  const AX = new THREE.Vector3(1, 0, 0);
+  const saved = BL.map(b => [b.position.clone(), b.quaternion.clone()]);
+  const restore = () => { BL.forEach((b, i) => { b.position.copy(saved[i][0]); b.quaternion.copy(saved[i][1]); }); upd(); };
+  const SX = {}, shinLen = {}, footQ = {};
+  for (const sd of ['L', 'R']) {
+    SX[sd] = Math.sign(rb['UpperLeg' + sd].getWorldPosition(V()).x);
+    shinLen[sd] = rb['LowerLeg' + sd].getWorldPosition(V()).distanceTo(rb['Foot' + sd].getWorldPosition(V()));
+    footQ[sd] = rb['Foot' + sd].getWorldQuaternion(Q());
+  }
+  const legs = () => riderLegs(rb, SX, shinLen, footQ, aim, setWorldQ, upd, V, Q, AX);
+  // soldier: left hand on the reins, right hand holding the lance; civilian: both hands on the reins
+  const armsLance = lean => {
+    const L = SX.L, R = SX.R;
+    aim(rb.UpperArmL, rb.LowerArmL, V().set(L * .14, -.97 + lean * .35, .18 + lean * .55));
+    aim(rb.LowerArmL, rb.WristL, V().set(-L * .38, -.78 + lean * .45, .5 + lean * .4));
+    aim(rb.UpperArmR, rb.LowerArmR, V().set(R * .2, -.97 + lean * .4, .1 + lean * .6));
+    aim(rb.LowerArmR, rb.WristR, V().set(R * .06, -.5 + lean * .3, .86));
+  };
+  const armsReins = lean => {
+    for (const [sd, s] of [['L', SX.L], ['R', SX.R]]) {
+      aim(rb['UpperArm' + sd], rb['LowerArm' + sd], V().set(s * .16, -.9 + lean * .3, .36 + lean * .4));
+      aim(rb['LowerArm' + sd], rb['Wrist' + sd], V().set(-s * .3, -.42 + lean * .3, .86));
+    }
+  };
+  const lean = () => { turn(rb.Torso, AX, .2); turn(rb.Chest, AX, .1); turn(rb.Head, AX, -.24); };
+  const snap = () => ({
+    bones: BL.map(b => [b.position.clone(), b.quaternion.clone()]),
+    hands: [rb.WristL.getWorldPosition(V()), rb.WristR.getWorldPosition(V())],
+    head: rb.Head.getWorldQuaternion(Q()),
+  });
+  const poses = {};
+  restore(); legs(); armsReins(0); poses.sitC = snap();
+  restore(); legs(); lean(); armsReins(1); poses.leanC = snap();
+  restore(); legs(); lean(); armsLance(1); holdLance(rb, setWorldQ); turn(rb.WristR, AX, .95); poses.leanS = snap();
+  restore(); legs(); armsLance(0); holdLance(rb, setWorldQ); poses.sitS = snap();
+  const hipsP = rb.Hips.getWorldPosition(V());
+
+  // accessories, built around the posed bones and bound to them (skinned, one bone each)
+  // vertices are stored relative to the bind matrix (as loaded), not to the mesh's current transform
+  const bindInv = first.bindMatrix.clone().invert();
+  const toBind = (geo, bone) => {
+    const i = skel.bones.indexOf(bone);
+    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(bone.matrixWorld, skel.boneInverses[i]).invert().premultiply(bindInv));
+    const n = geo.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    for (let k = 0; k < n; k++) { si[k * 4] = i; sw[k * 4] = 1; }
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    geo.deleteAttribute('uv');
+    return geo;
+  };
+  const placed = (geo, pos, rot, scl = 1) => geo.applyMatrix4(new THREE.Matrix4().compose(pos, rot.isQuaternion ? rot : Q().setFromEuler(new THREE.Euler(...rot)), V().setScalar(scl)));
+  const acc = (geo, pos, rot, key, bone, scl) => ({ geo: toBind(placed(geo, pos, rot, scl), bone), key });
+  // the lance runs through the right fist (posed as sitS here)
+  const fist = riderFist(rb, 'R');
+  const arms = [
+    acc(new THREE.CylinderGeometry(.018, .022, 3.3, 6), fist.at.clone().addScaledVector(fist.dir, .9), fist.q, 'wood', rb.WristR),
+    acc(new THREE.ConeGeometry(.045, .3, 6), fist.at.clone().addScaledVector(fist.dir, 2.7), fist.q, 'steel', rb.WristR),
+    acc(new THREE.CylinderGeometry(.3, .3, .05, 18), hipsP.clone().add(V().set(.05, .45, -.19)), [Math.PI / 2, 0, 0], 'shield', rb.Chest, .72),
+    acc(new THREE.SphereGeometry(.07, 8, 6), hipsP.clone().add(V().set(.05, .45, -.22)), [0, 0, 0], 'steel', rb.Chest),
+  ];
+  // the body parts merged into one skinned mesh per dress, keeping the model's own normals
+  const fresh = (attr, Type) => { const n = attr.count, s = attr.itemSize, a = new Type(n * s); for (let i = 0; i < n; i++) for (let c = 0; c < s; c++) a[i * s + c] = attr.getComponent(i, c); return new THREE.BufferAttribute(a, s); };
+  const reBind = new THREE.Matrix4();
+  const bodyGeos = body.map(p => {
+    const g = new THREE.BufferGeometry(), A = p.geometry.attributes;
+    for (const [k, T] of [['position', Float32Array], ['normal', Float32Array], ['skinIndex', Uint16Array], ['skinWeight', Float32Array]]) g.setAttribute(k, fresh(A[k], T));
+    if (RIDER_BAKED.includes(p.material.name) && A.color) g.setAttribute('color', fresh(A.color, Float32Array));
+    if (p.geometry.index) g.setIndex(new THREE.BufferAttribute(new Uint32Array(p.geometry.index.array), 1));
+    g.applyMatrix4(reBind.copy(bindInv).multiply(p.bindMatrix));
+    return { g, mat: p.material.name, base: p.material.color };
+  });
+  // the skin keeps its baked colours, a little darker or lighter per rider; robe, turban and sandals by dress
+  const tone = [1, .86, 1.15, .74];
+  const colorOf = (mat, d, base) => ({ Robe: d.tunic, Turban: d.turban, Leather: d.boots, Hair: '#1c1510', Eyebrows: '#1c1510' })[mat] || '#' + base.getHexString();
+  const skin = (g, f) => { const C = bakedRGB(g).attributes.color; for (let i = 0; i < C.array.length; i++) C.array[i] *= f; return g; };
+  const build = (kind, list) => RIDER_DRESS[kind].map((d, k) => mergeGeometries([
+    ...bodyGeos.map(b => b.g.attributes.color ? skin(b.g.clone(), b.mat === 'Skin' ? tone[k % tone.length] : 1) : colorize(b.g.clone(), new THREE.Color(colorOf(b.mat, d, b.base)))),
+    ...list.map(a => colorize(a.geo.clone(), new THREE.Color(a.key === 'wood' ? '#6a4a2c' : a.key === 'shield' ? '#6b4a2c' : '#9aa0a8'))),
+  ]));
+  const variants = { soldier: build('soldier', arms), civil: build('civil', []) };
+
+  // one skinned mesh for the body, on the shared skeleton
+  const mk = (geo, mat) => { const m = new THREE.SkinnedMesh(geo, mat); m.position.copy(first.position); m.quaternion.copy(first.quaternion); m.scale.copy(first.scale); first.parent.add(m); m.bind(skel, first.bindMatrix.clone()); return m; };
+  mk(variants.soldier[0], VC_MAT);
+  parts.forEach(p => p.parent.remove(p));
+  BL.forEach((b, i) => { b.position.copy(poses.sitS.bones[i][0]); b.quaternion.copy(poses.sitS.bones[i][1]); });
+  upd();
+  return { root, names, poses, hipsP, variants };
+}
+
+class LiveRider {
+  constructor(tpl, kind, idx) {
+    this.civil = kind === 'civil';
+    this.seat = new THREE.Group(); this.seat.rotation.order = 'YXZ';
+    this.root = SkeletonUtils.clone(tpl.root); this.root.position.copy(tpl.hipsP).negate(); this.seat.add(this.root);
+    const n = RIDER_DRESS[kind].length, v = idx % n;
+    this.b = {};
+    this.root.traverse(o => {
+      if (o.isSkinnedMesh) {
+        o.frustumCulled = false; o.castShadow = true; o.receiveShadow = true;
+        o.geometry = tpl.variants[kind][v];
+      }
+      if (o.isBone) this.b[o.name] = o;
+    });
+    this.bones = tpl.names.map(nm => this.b[nm]);
+    this.sit = tpl.poses[this.civil ? 'sitC' : 'sitS']; this.lean = tpl.poses[this.civil ? 'leanC' : 'leanS'];
+    this.py = null; this.pv = 0; this.sx = 0; this.sv = 0; this.rx = 0; this.rv = 0; this.hy = null; this.idx = idx;
+    this.far = null; this.isFar = false;
+  }
+  update(h, dt) {
+    const tor = h.group.worldToLocal(h.torso.getWorldPosition(LR_V[10])), bk = h.group.worldToLocal(h.back.getWorldPosition(LR_V[11]));
+    const pitch = Math.atan2(tor.y - bk.y, Math.hypot(tor.x - bk.x, tor.z - bk.z)) - h.tpl.basePitch, g = h.gal;
+    this.seat.position.set(tor.x, tor.y + RIDER_SEAT, tor.z + .05);
+    this.seat.rotation.set(-pitch * .9, 0, .02 * Math.sin(TIME * 1.3 + this.idx) * (1 - g));
+    // a soldier far from the camera is drawn as the light version of the rider (as the horsemen of the mass are):
+    // a tenth of the triangles, and no skinning or posing
+    const far = !this.civil && MASS_RIDER && h.group.getWorldPosition(LR_V[12]).distanceTo(camera.position) > RIDER_FAR;
+    if (far && !this.far) { this.far = new THREE.Mesh(MASS_RIDER[this.idx % MASS_RIDER.length], VC_MAT); this.far.castShadow = true; this.seat.add(this.far); }
+    if (this.far) { this.far.visible = far; this.root.visible = !far; }
+    this.isFar = far;
+    if (far) { const mi = this.far.morphTargetInfluences; mi[0] = g; mi[1] = h.look; this.seat.updateMatrixWorld(true); return; }
+    const S = this.sit.bones, L = this.lean.bones;
+    for (let i = 0; i < this.bones.length; i++) { const b = this.bones[i]; if (!b) continue; b.quaternion.slerpQuaternions(S[i][1], L[i][1], g); b.position.lerpVectors(S[i][0], L[i][0], g); }
+    this.seat.updateMatrixWorld(true);
+    if (h.group.position.distanceTo(camera.position) > 75 || dt <= 0) return;
+    // the torso absorbs the saddle's bounce through a spring and stays more upright than the hips
+    const sy = tor.y;
+    if (this.py === null) { this.py = sy; this.pv = 0; this.hy = 0; }
+    const vy = (sy - this.py) / dt, ay = (vy - this.pv) / dt; this.py = sy; this.pv = vy;
+    const target = clamp(-ay * .005, -.13, .13), k = Math.min(dt, .033);
+    this.sv += ((target - this.sx) * 80 - this.sv * 10) * k; this.sx += this.sv * k;
+    const sq = this.seat.getWorldQuaternion(LR_Q[3]), right = LR_V[0].set(1, 0, 0).applyQuaternion(sq);
+    lrTurnWorld(this.b.Abdomen, LR_Q[5].setFromAxisAngle(right, pitch * .5 + this.sx * .6));
+    lrTurnWorld(this.b.Chest, LR_Q[5].setFromAxisAngle(right, pitch * .3 + this.sx * .45));
+    // the head stays level with the horizon and looks around when the horse stands
+    const yaw = LR_Q[4].setFromAxisAngle(LR_UP, h.group.rotation.y + h.look * .6);
+    const rel = LR_Q[2].slerpQuaternions(this.sit.head, this.lean.head, g);
+    const want = yaw.multiply(rel), cur = this.b.Head.getWorldQuaternion(LR_Q[3]);
+    lrSetWorldQ(this.b.Head, cur.slerp(want, .85));
+    // rein hands stay with the horse: the pose's hand positions, carried by the seat, plus a little of the neck's nod
+    const hy = h.head.getWorldPosition(LR_V[1]).y;
+    this.hy = this.hy ? lerp(this.hy, hy, 1 - Math.exp(-dt * 2)) : hy;
+    const nod = clamp((hy - this.hy) * .25, -.05, .05);
+    for (const [k2, side] of this.civil ? [[0, 'L'], [1, 'R']] : [[0, 'L']]) {
+      const t = LR_V[2].lerpVectors(this.sit.hands[k2], this.lean.hands[k2], g).applyMatrix4(this.root.matrixWorld); t.y += nod;
+      const pole = LR_V[0].set(k2 ? -.5 : .5, -.4, -.6).applyQuaternion(sq);
+      lrReach(this.b['UpperArm' + side], this.b['LowerArm' + side], this.b['Wrist' + side], t, pole);
+    }
+  }
+}
+
 class HorseUnit {
   constructor(tpl, variant, rider, idx) {
     this.tpl = tpl;
     this.inst = SkeletonUtils.clone(tpl.root);
     this.inst.traverse(o => {
-      if (o.isSkinnedMesh) { o.geometry = tpl.variants[variant]; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; }
+      if (o.isSkinnedMesh) { o.geometry = tpl.variants[variant]; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; this.mesh = o; }
       if (o.isBone && o.name === 'Torso') this.torso = o;
       if (o.isBone && o.name === 'Back') this.back = o;
       if (o.isBone && o.name === 'Head') this.head = o;
@@ -1104,12 +1454,15 @@ class HorseUnit {
     this.play('Idle', 0);
     this.mixer.update(idx * .37 % 2);
     const rg = rider === 'civil' ? tpl.civil : rider ? tpl.riders : null;
-    this.rider = rg ? new THREE.Mesh(rg[idx % rg.length], VC_MAT) : null;
+    // a live, rigged rider where available; otherwise the baked one
+    this.live = rider && tpl.live ? new LiveRider(tpl.live, rider === 'civil' ? 'civil' : 'soldier', idx) : null;
+    this.rider = this.live ? this.live.seat : rg ? new THREE.Mesh(rg[idx % rg.length], VC_MAT) : null;
     if (this.rider) {
-      this.rider.castShadow = true; this.rider.rotation.order = 'YXZ'; this.group.add(this.rider);
+      if (!this.live) { this.rider.castShadow = true; this.rider.rotation.order = 'YXZ'; }
+      this.group.add(this.rider);
       // reins from the hands to both sides of the bit
       this.handSet = tpl.hands[rider === 'civil' ? 'civil' : 'soldier'];
-      this.reins = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3)), REINS_MAT);
+      this.reins = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(27), 3)), REINS_MAT);
       this.reins.frustumCulled = false; this.group.add(this.reins);
     }
     this.idx = idx;
@@ -1143,8 +1496,22 @@ class HorseUnit {
     // a family member's horse carries their light where the rider would sit
     if (this.noor) this.noor.group.position.set(tor.x, tor.y + 1.05, tor.z + .05);
     if (!this.rider) return;
+    if (this.live) {
+      const k = 1 - Math.exp(-dt * 3);
+      this.gal = lerp(this.gal, this.speed > 4 ? 1 : 0, k);
+      this.look = lerp(this.look, this.speed < .3 ? Math.sin(TIME * .21 + this.idx * 1.7) * .9 : 0, 1 - Math.exp(-dt * 1.2));
+      if (this.reins) this.reins.visible = this.rider.visible;
+      if (this.rider.visible) this.live.update(this, dt);
+      if (this.live.isFar) { if (this.reins) this.reins.visible = false; return; }
+      if (this.reins && this.tpl.mouthLocal) {
+        const b = this.live.b, fist = sd => b['Middle2' + sd] || b['Wrist' + sd];
+        const hl = this.group.worldToLocal(fist('L').getWorldPosition(REIN_V2)), r = this.live.civil ? this.group.worldToLocal(fist('R').getWorldPosition(REIN_V3)) : hl;
+        setReins(this, hl, r);
+      }
+      return;
+    }
     const bk = this.group.worldToLocal(this.back.getWorldPosition(tmpV2));
-    this.rider.position.set(tor.x, tor.y + .25, tor.z + .05);
+    this.rider.position.set(tor.x, tor.y + RIDER_SEAT, tor.z + .05);
     // the rider rocks with the horse's back, leans into a gallop and looks around when standing
     const pitch = Math.atan2(tor.y - bk.y, Math.hypot(tor.x - bk.x, tor.z - bk.z)) - this.tpl.basePitch;
     const k = 1 - Math.exp(-dt * 3);
@@ -1156,12 +1523,9 @@ class HorseUnit {
     mi[0] = this.gal; mi[1] = this.look;
     if (this.reins && this.tpl.mouthLocal) {
       this.rider.updateMatrix(); this.rider.updateMatrixWorld(true);
-      const P = this.reins.geometry.attributes.position, [hb, hg] = this.handSet, two = this.handSet === this.tpl.hands.civil;
-      const bit = this.head.localToWorld(REIN_V.copy(this.tpl.mouthLocal)); this.group.worldToLocal(bit);
+      const [hb, hg] = this.handSet, two = this.handSet === this.tpl.hands.civil;
       const hl = REIN_V2.copy(hb[0]).lerp(hg[0], this.gal).applyMatrix4(this.rider.matrix), hr = REIN_V3.copy(hb[1]).lerp(hg[1], this.gal).applyMatrix4(this.rider.matrix);
-      const r = two ? hr : hl;
-      P.setXYZ(0, bit.x - .07, bit.y, bit.z); P.setXYZ(1, hl.x, hl.y, hl.z); P.setXYZ(2, (hl.x + r.x) / 2, (hl.y + r.y) / 2 - .02, (hl.z + r.z) / 2); P.setXYZ(3, r.x, r.y, r.z); P.setXYZ(4, bit.x + .07, bit.y, bit.z);
-      P.needsUpdate = true;
+      setReins(this, hl, two ? hr : hl);
     }
   }
 }
@@ -1191,6 +1555,28 @@ function bakeHorsePose(tpl, variant, clip, t) {
   g.computeVertexNormals();
   return { g, tor: h.group.worldToLocal(h.torso.getWorldPosition(new THREE.Vector3())) };
 }
+// a lighter copy of a model for far away: its corners within one cell of a grid are merged into one (their average
+// position and colour) and triangles that close up are dropped
+function clusterSimplify(src, cell) {
+  const P = src.attributes.position, C = src.attributes.color, n = P.count, id = new Int32Array(n), map = new Map(), sum = [];
+  for (let i = 0; i < n; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i), k = Math.floor(x / cell) + ',' + Math.floor(y / cell) + ',' + Math.floor(z / cell);
+    let c = map.get(k); if (c === undefined) { c = sum.length; map.set(k, c); sum.push([0, 0, 0, 0, 0, 0, 0]); }
+    const s = sum[c]; s[0] += x; s[1] += y; s[2] += z; if (C) { s[3] += C.getX(i); s[4] += C.getY(i); s[5] += C.getZ(i); } s[6]++; id[i] = c;
+  }
+  const tri = src.index ? i => src.index.getX(i) : i => i, m = src.index ? src.index.count : n, pos = [], col = [], seen = new Set();
+  for (let i = 0; i < m; i += 3) {
+    const a = id[tri(i)], b = id[tri(i + 1)], c = id[tri(i + 2)];
+    if (a === b || b === c || a === c) continue;
+    const key = [a, b, c].sort((p, q) => p - q).join(); if (seen.has(key)) continue; seen.add(key);
+    for (const v of [a, b, c]) { const s = sum[v]; pos.push(s[0] / s[6], s[1] / s[6], s[2] / s[6]); if (C) col.push(s[3] / s[6], s[4] / s[6], s[5] / s[6]); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  if (C) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
 function simpleRider(tunic, turban) {
   const parts = [];
   const add = (geo, x, y, z, rx, col) => { geo.rotateX(rx); geo.translate(x, y, z); parts.push(colorize(onlyAttrs(geo, ['position', 'normal']), new THREE.Color(col))); };
@@ -1206,11 +1592,23 @@ function simpleRider(tunic, turban) {
 const MASS_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85, metalness: 0 });
 const MASS_POSES = [['Gallop', 0], ['Gallop', .25], ['Gallop', .5], ['Gallop', .75], ['Idle', .3]];
 const MASS_COATS = [['bay', '#5b2420', '#e6dccb'], ['black', '#2b3050', '#e6dccb'], ['dun', '#6b5a3c', '#2a2a30'], ['chestnut', '#2a2826', '#d9c9a8']];
-let MASS_GEOS = null;
+let MASS_GEOS = null, MASS_NEAR = null, MASS_RIDER = null;
+// the same horses with the light version of the rider (sitting, or leaning into the gallop), for horsemen near the camera
+function massGeosNear(tpl) {
+  if (!MASS_RIDER) return massGeos(tpl);
+  return MASS_NEAR || (MASS_NEAR = MASS_COATS.map(([coat], v) => MASS_POSES.map(([clip, t], p) => {
+    const { g, tor } = bakeHorsePose(tpl, coat, clip, t), src = MASS_RIDER[v], r = new THREE.BufferGeometry();
+    r.setAttribute('position', (p < 4 ? src.morphAttributes.position[0] : src.attributes.position).clone());
+    r.setAttribute('normal', src.attributes.normal.clone()); r.setAttribute('color', src.attributes.color.clone());
+    r.translate(tor.x, tor.y + RIDER_SEAT, tor.z + .05);
+    return mergeGeometries([g, r]);
+  })));
+}
 function massGeos(tpl) {
   return MASS_GEOS || (MASS_GEOS = MASS_COATS.map(([coat, tunic, turban]) => MASS_POSES.map(([clip, t]) => {
+    // these horsemen are only seen from afar (nearer ones use massGeosNear), so the horse is a lighter copy
     const { g, tor } = bakeHorsePose(tpl, coat, clip, t);
-    return mergeGeometries([g, ...simpleRider(tunic, turban).map(p => p.translate(tor.x, tor.y + .25, tor.z + .05))]);
+    return mergeGeometries([clusterSimplify(g, .07), ...simpleRider(tunic, turban).map(p => p.translate(tor.x, tor.y + .25, tor.z + .05))]);
   })));
 }
 function buildMass(tpl, group) {
@@ -1361,11 +1759,13 @@ function buildSharaf(T) {
   const path = new THREE.CatmullRomCurve3(Array.from({ length: 14 }, (_, i) => { const x = -230 + i * 22; return new THREE.Vector3(x, 0, pathSha(x)); }));
   return { group, h: hSha, path, buckets };
 }
-// the river: silty water, darker in the channel and lighter over the shallows, with a slow current of streaks
+// the river: coloured by its real depth over the bed (clear and sandy at the edge, green over the shallows, dark
+// teal in the channel), see-through where it thins out on the bank with a faint wet line, glassy enough to take the
+// sky and the sun, and stirred by fine ripples in two layers drifting with the current
 const RIVER_N = (() => {
-  const r = rng(17), W = Array.from({ length: 16 }, () => [1 + Math.floor(r() * 7), Math.floor(r() * 9) - 4, r() * TAU, .4 + r() * .6]);
-  const t = normalTex(256, (x, y) => W.reduce((a, [kx, ky, ph, amp]) => a + amp / Math.hypot(kx, ky) * Math.sin((kx * x + ky * y) / 256 * TAU + ph), 0), 2.4);
-  t.repeat.set(90, 9); return t;
+  const r = rng(17), W = Array.from({ length: 22 }, () => [2 + Math.floor(r() * 10), Math.floor(r() * 13) - 6, r() * TAU, .3 + r() * .7]);
+  const t = normalTex(256, (x, y) => W.reduce((a, [kx, ky, ph, amp]) => a + amp / Math.hypot(kx, ky) * Math.sin((kx * x + ky * y) / 256 * TAU + ph), 0), 3.2);
+  return t;
 })();
 const RIVER_FLOW = { value: new THREE.Vector2() };
 const STREAK_TEX = (() => {
@@ -1377,32 +1777,83 @@ const STREAK_TEX = (() => {
   g.fillStyle = gr; g.fillRect(0, 0, 512, 64);
   const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
 })();
-function buildRiver(group, zc, len = 1500) {
-  const g = new THREE.PlaneGeometry(len, 160, 300, 40); g.rotateX(-Math.PI / 2);
-  const P = g.attributes.position, col = new Float32Array(P.count * 3), c = new THREE.Color(), deep = new THREE.Color('#15302a'), shallow = new THREE.Color('#687050'), band = new THREE.Color('#a39c80');
+function buildRiver(group, zc, len = 1500, hf = hKar, level = -1.35) {
+  const W = 60, g = new THREE.PlaneGeometry(len, W, 600, 48); g.rotateX(-Math.PI / 2);
+  // the water follows the river's course; each point's depth is the water level above the bed there
+  const P = g.attributes.position, col = new Float32Array(P.count * 4), uv = g.attributes.uv, c = new THREE.Color();
+  const sand = new THREE.Color('#9a8d68'), wet = new THREE.Color('#d8d2bf'), shallow = new THREE.Color('#57684a'), mid = new THREE.Color('#33503f'), deep = new THREE.Color('#18342c');
   for (let i = 0; i < P.count; i++) {
-    const x = P.getX(i), d = Math.abs(P.getZ(i) - 232 - zc(x)), sed = N.fbm(x * .008, 3.1, 2);
-    c.copy(deep).lerp(shallow, smooth(2, 10, d)).lerp(band, smooth(7.5, 9.5, d) * (1 - smooth(10, 12.5, d)) * .55).multiplyScalar(1 + .14 * sed);
-    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    const x = P.getX(i), z = P.getZ(i) + zc(x); P.setZ(i, z);
+    const d = Math.max(0, level - hf(x, z)), sed = N.fbm(x * .01, z * .02 + 3.1, 2);
+    c.copy(sand).lerp(shallow, smooth(.05, .5, d)).lerp(mid, smooth(.4, 1.2, d)).lerp(deep, smooth(1.1, 2.2, d)).multiplyScalar(1 + .1 * sed);
+    c.lerp(wet, .55 * smooth(.0, .04, d) * (1 - smooth(.04, .16, d)));             // the wet line where it laps the sand
+    col[i * 4] = c.r; col[i * 4 + 1] = c.g; col[i * 4 + 2] = c.b; col[i * 4 + 3] = smooth(0, .3, d) * .97 + .03 * smooth(0, .04, d);
+    uv.setXY(i, x / 3.6, z / 3.6);                                                  // ripples a few metres across
   }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .26, metalness: 0, normalMap: RIVER_N, normalScale: new THREE.Vector2(.3, .3), envMapIntensity: .55 });
+  g.setAttribute('color', new THREE.BufferAttribute(col, 4)); g.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, depthWrite: false, roughness: .08, metalness: 0, normalMap: RIVER_N, normalScale: new THREE.Vector2(.26, .26), envMapIntensity: .78 });
   mat.onBeforeCompile = sh => {
     sh.uniforms.uFlow = RIVER_FLOW;
     sh.fragmentShader = 'uniform vec2 uFlow;\n' + sh.fragmentShader.replace('#include <normal_fragment_maps>', `#ifdef USE_NORMALMAP_TANGENTSPACE
-      vec3 n1 = texture2D( normalMap, vNormalMapUv + vec2( uFlow.x, 0.0 ) ).xyz * 2.0 - 1.0;
-      vec3 n2 = texture2D( normalMap, vNormalMapUv * 2.3 + vec2( uFlow.y, uFlow.y * 0.4 ) ).xyz * 2.0 - 1.0;
-      vec3 mapN = normalize( vec3( n1.xy + n2.xy * 0.6, n1.z ) );
-      mapN.xy *= normalScale;
+      vec3 n1 = texture2D( normalMap, vNormalMapUv + vec2( uFlow.x, uFlow.x * 0.15 ) ).xyz * 2.0 - 1.0;
+      vec3 n2 = texture2D( normalMap, vNormalMapUv * 2.7 + vec2( uFlow.y * 1.6, -uFlow.y * 0.5 ) ).xyz * 2.0 - 1.0;
+      float calm = texture2D( normalMap, vNormalMapUv * 0.083 + vec2( uFlow.x * 0.3, 0.0 ) ).x;     // calmer and choppier patches
+      vec3 mapN = normalize( vec3( n1.xy + n2.xy * 0.55, n1.z ) );
+      mapN.xy *= normalScale * ( 0.45 + 1.1 * calm * calm );
       normal = normalize( tbn * mapN );
     #endif`);
   };
   const m = new THREE.Mesh(g, mat);
-  m.position.set(0, -1.35, -232); m.receiveShadow = true; group.add(m);
-  const n = Math.round(len / 5), pos = [], uv = [], idx = [];
-  for (let i = 0; i <= n; i++) { const x = -len / 2 + i * 5, z = zc(x); pos.push(x, -1.31, z - 8, x, -1.31, z + 8); uv.push(x / 45, 0, x / 45, 1); if (i < n) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
-  const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); rg.setIndex(idx);
-  group.add(new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ map: STREAK_TEX, transparent: true, depthWrite: false, opacity: .16, color: '#dfe6da' })));
+  m.position.y = level; m.receiveShadow = true; m.renderOrder = 1; group.add(m);
+  // a faint current: soft streaks drifting downstream over the channel
+  const n = Math.round(len / 5), pos = [], suv = [], idx = [];
+  for (let i = 0; i <= n; i++) { const x = -len / 2 + i * 5, z = zc(x); pos.push(x, level + .03, z - 6, x, level + .03, z + 6); suv.push(x / 45, 0, x / 45, 1); if (i < n) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
+  const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute('uv', new THREE.Float32BufferAttribute(suv, 2)); rg.setIndex(idx);
+  const st = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ map: STREAK_TEX, transparent: true, depthWrite: false, opacity: .06, color: '#e6ece4' })); st.renderOrder = 2; group.add(st);
+}
+// a clump of reeds: tapered blades fanning out and bending over, darker at the foot and paler towards the tips, some
+// of them dry; a feathery seed head on the tallest when plume is set
+const REED_TIME = { value: 0 };
+const REED_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, metalness: 0, side: THREE.DoubleSide });
+REED_MAT.onBeforeCompile = sh => {
+  sh.uniforms.uTime = REED_TIME;
+  sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+    float sw = max( position.y, 0.0 ); sw *= sw;
+    vec3 ip = vec3( instanceMatrix[3] );
+    transformed.x += sin( uTime * 1.5 + ip.x * 0.31 + ip.z * 0.17 ) * 0.045 * sw;
+    transformed.z += sin( uTime * 1.1 + ip.x * 0.23 + 1.7 ) * 0.03 * sw;`);
+};
+function reedClump(r, n, plume) {
+  const pos = [], col = [], idx = [], c = new THREE.Color();
+  const base = new THREE.Color('#3f4a24'), tip = new THREE.Color('#9a9a52'), dry = new THREE.Color('#b59e68'), SEG = 4;
+  let tallest = null;
+  for (let b = 0; b < n; b++) {
+    const a = r() * TAU, lean = .08 + r() * .38, H = .9 + r() * 1.1, w = .022 + r() * .014, bend = .25 + r() * .5, isDry = r() < .18;
+    const dx = Math.cos(a), dz = Math.sin(a), ox = (r() - .5) * .22, oz = (r() - .5) * .22, v0 = pos.length / 3;
+    const side = [-dz, dx];                                                       // blades face across their lean
+    for (let k = 0; k <= SEG; k++) {
+      const t = k / SEG, y = H * t * (1 - .12 * bend * t), out = H * (lean * t + bend * .35 * t * t), hw = w * (1 - t * .92);
+      const x = ox + dx * out, z = oz + dz * out;
+      pos.push(x - side[0] * hw, y, z - side[1] * hw, x + side[0] * hw, y, z + side[1] * hw);
+      c.copy(base).lerp(isDry ? dry : tip, Math.min(1, t * 1.15)).multiplyScalar(.9 + r() * .2);
+      col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+      if (k < SEG) { const i = v0 + k * 2; idx.push(i, i + 1, i + 3, i, i + 3, i + 2); }
+      if (k === SEG && (!tallest || y > tallest[1])) tallest = [x, y, z];
+    }
+  }
+  if (plume && tallest) {                                                        // a seed head: a slim, drooping tuft
+    const [x, y, z] = tallest, v0 = pos.length / 3, P = new THREE.Color('#8a6a48');
+    for (let k = 0; k < 6; k++) {
+      const a = k / 6 * TAU, rr = .035;
+      pos.push(x + Math.cos(a) * rr, y - .02, z + Math.sin(a) * rr, x + Math.cos(a) * rr * .4 + .05, y + .2, z + Math.sin(a) * rr * .4);
+      col.push(P.r, P.g, P.b, P.r * 1.2, P.g * 1.2, P.b * 1.2);
+      const i = v0 + k * 2, j = v0 + ((k + 1) % 6) * 2; idx.push(i, j, j + 1, i, j + 1, i + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
 }
 function buildKarbala(T) {
   const group = new THREE.Group();
@@ -1421,15 +1872,24 @@ function buildKarbala(T) {
   for (let i = 0; i < 24; i++) { const x = -500 + r() * 1000, z = zRiver(x) + 16 + r() * 18; palms.push({ x, y: hKar(x, z) - .2, z, s: 8 + r() * 5, ry: r() * TAU }); }
   group.add(instanced(T.palmA, palms.filter((_, i) => i % 2)));
   group.add(instanced(T.palmB, palms.filter((_, i) => !(i % 2))));
-  const reedGeo = new THREE.ConeGeometry(.07, 1.8, 4); reedGeo.translate(0, .9, 0);
-  const reedIM = new THREE.InstancedMesh(reedGeo, M.reed, 1400);
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-  for (let i = 0; i < 1400; i++) {
-    const x = -700 + r() * 1400, side = r() < .5 ? 1 : -1, z = zRiver(x) + side * (7 + r() * 9);
-    q.setFromEuler(e.set((r() - .5) * .4, 0, (r() - .5) * .4));
-    m4.compose(tmpV.set(x, hKar(x, z) - .1, z), q, tmpV2.setScalar(.6 + r() * .9)); reedIM.setMatrixAt(i, m4);
+  // reeds: clumps gathered in patches along the waterline (the damp bank and the shallows), swaying a little
+  const clumps = [reedClump(rng(81), 13, false), reedClump(rng(82), 10, true), reedClump(rng(83), 16, true)];
+  const spots = [];
+  for (let tries = 0; spots.length < 760 && tries < 40000; tries++) {
+    const x = -700 + r() * 1400, side = r() < .5 ? 1 : -1, z = zRiver(x) + side * (3 + r() * 14), y = hKar(x, z);
+    if (y < -1.75 || y > -.75) continue;                                            // from knee-deep water to just above it
+    if (N.fbm(x * .02, z * .05 + side * 7, 2) < -.05) continue;                    // in patches, with open shore between
+    spots.push([x, y, z]);
   }
-  reedIM.castShadow = true; group.add(reedIM);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  clumps.forEach((geo, k) => {
+    const mine = spots.filter((_, i) => i % clumps.length === k), im = new THREE.InstancedMesh(geo, REED_MAT, mine.length);
+    mine.forEach(([x, y, z], i) => {
+      q.setFromEuler(e.set((r() - .5) * .12, r() * TAU, (r() - .5) * .12));
+      m4.compose(tmpV.set(x, y - .05, z), q, tmpV2.setScalar(.65 + r() * .7)); im.setMatrixAt(i, m4);
+    });
+    im.castShadow = true; im.receiveShadow = true; group.add(im);
+  });
 
   // camp of Imam Hussain (AS)
   const camp = new THREE.Group(); group.add(camp);
@@ -1609,9 +2069,228 @@ const M4 = (x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = sx, sz = sx) => new TH
 function part(geo, m, col) { geo.applyMatrix4(m); return colorize(onlyAttrs(geo, ['position', 'normal']), new THREE.Color(col)); }
 function place(im, i, x, y, z, ry, sx, sy = sx, sz = sx, rx = 0, rz = 0) { im.setMatrixAt(i, M4(x, y, z, rx, ry, rz, sx, sy, sz)); }
 
-// ─────────── people: a light robed figure with a baked walk cycle, for crowds ───────────
-// pose 0..5 are walk frames, pose 6 is standing
+// ─────────── people: the standing man (built in Blender on a CC0 base) in a walk cycle, for crowds ───────────
+// pose 0..5 are walk frames, pose 6 is standing. The model carries a turban, a head shawl, short hair and a belt;
+// each look shows the pieces it needs. Far away a light primitive figure stands in for him. He also prays (the
+// prayer rows): a second robe of his follows the shins below the knee, for kneeling and prostrating.
+let MAN = null;
+const MAN_AX = new THREE.Vector3(1, 0, 0);
+function prepMan(gltf) {
+  const root = gltf.scene; root.updateMatrixWorld(true);
+  const rb = {}, parts = [];
+  root.traverse(o => { if (o.isBone) rb[o.name] = o; if (o.isSkinnedMesh) parts.push(o); });
+  const Q = () => new THREE.Quaternion(), upd = () => root.updateMatrixWorld(true);
+  const turn = (bone, ang) => {
+    upd(); const q = Q().setFromAxisAngle(MAN_AX, ang).multiply(bone.getWorldQuaternion(Q()));
+    bone.quaternion.copy(bone.parent.getWorldQuaternion(Q()).invert().multiply(q)); upd();
+  };
+  const bones = Object.values(rb), saved = bones.map(b => b.quaternion.clone());
+  // a veil of light the shape of the face, for companions whose faces are not shown: an oval over the face from the
+  // brow to below the chin, laid out in rings from its middle, each point set just in front of the face (measured
+  // straight on, eyes and beard included) so it follows the face's own shape; it fades out towards its edge and
+  // moves with the head (an extra part, shown only by looks with veil; MAN.veilAlpha holds the fade)
+  let veilAlpha = null;
+  {
+    const skin = parts.find(pt => pt.material.name === 'Skin'), hits = parts.filter(pt => ['Skin', 'Eyes', 'Hair'].includes(pt.material.name));
+    const hb = rb.Head.getWorldPosition(new THREE.Vector3()), v = new THREE.Vector3();
+    let brow = -Infinity;
+    for (let i = 0, SP = skin.geometry.attributes.position; i < SP.count; i++) {
+      skin.getVertexPosition(i, v); v.applyMatrix4(skin.matrixWorld);
+      if (v.y > hb.y + .08 && v.y < hb.y + .16 && Math.abs(v.x - hb.x) < .04) brow = Math.max(brow, v.y);
+    }
+    const y0 = hb.y - .085, y1 = brow + .02, cy = (y0 + y1) / 2, ay = (y1 - y0) / 2, ax = .08, NR = 8, NA = 28;
+    // a point 100% on the head bone is drawn at F x (its stored position): store F^-1 x (where it should be)
+    const hi = skin.skeleton.bones.indexOf(rb.Head);
+    const F = new THREE.Matrix4().copy(skin.matrixWorld).multiply(skin.bindMatrixInverse)
+      .multiply(new THREE.Matrix4().multiplyMatrices(rb.Head.matrixWorld, skin.skeleton.boneInverses[hi])).multiply(skin.bindMatrix).invert();
+    const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, 0, -1), pos = [], alpha = [];
+    let depth0 = hb.z + .1;
+    const put = (x, y, fallZ, r) => {
+      ray.set(v.set(x, y, hb.z + .4), down);
+      const h = ray.intersectObjects(hits, false)[0], z = (h ? h.point.z : fallZ) + .012;
+      const q = new THREE.Vector3(x, y, z).applyMatrix4(F); pos.push(q.x, q.y, q.z); alpha.push(smooth(1, .62, r));
+      return z - .012;
+    };
+    depth0 = put(hb.x, cy, depth0, 0);                                      // the middle
+    let prev = new Array(NA).fill(depth0);
+    for (let r = 1; r <= NR; r++) for (let k = 0; k < NA; k++) {
+      const t = k / NA * TAU, u = r / NR;
+      prev[k] = put(hb.x + ax * u * Math.cos(t), cy + ay * u * Math.sin(t), prev[k], u);
+    }
+    const index = [], at = (r, k) => r === 0 ? 0 : 1 + (r - 1) * NA + (k % NA);
+    for (let k = 0; k < NA; k++) index.push(0, at(1, k), at(1, k + 1));
+    for (let r = 1; r < NR; r++) for (let k = 0; k < NA; k++) index.push(at(r, k), at(r + 1, k), at(r + 1, k + 1), at(r, k), at(r + 1, k + 1), at(r, k + 1));
+    const m = pos.length / 3, si = new Uint16Array(m * 4), sw = new Float32Array(m * 4);
+    for (let k = 0; k < m; k++) { si[k * 4] = hi; sw[k * 4] = 1; }
+    const vg = new THREE.BufferGeometry();
+    vg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); vg.setIndex(index); vg.computeVertexNormals();
+    vg.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); vg.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    const veil = new THREE.SkinnedMesh(vg, new THREE.MeshBasicMaterial()); veil.material.name = 'FaceVeil'; veil.name = 'faceveil';
+    veil.position.copy(skin.position); veil.quaternion.copy(skin.quaternion); veil.scale.copy(skin.scale); skin.parent.add(veil);
+    veil.bind(skin.skeleton, skin.bindMatrix.clone()); veil.bindMatrixInverse.copy(skin.bindMatrixInverse);
+    root.updateMatrixWorld(true); parts.push(veil);
+    veilAlpha = new Float32Array(m * 4); alpha.forEach((a_, k) => { veilAlpha.set([1, 1, 1, a_], k * 4); });
+  }
+  const pose = p => {
+    bones.forEach((b, i) => b.quaternion.copy(saved[i])); upd();
+    if (p >= 6) return;
+    for (const [sd, off] of [['L', 0], ['R', Math.PI]]) {
+      const ph = p / 6 * TAU + off, sw = Math.sin(ph);
+      turn(rb['UpperLeg' + sd], -.36 * sw);                                  // the leg swings forward and back
+      turn(rb['LowerLeg' + sd], .08 + .5 * Math.max(0, Math.cos(ph)));        // the knee bends as the leg comes through
+      turn(rb['UpperArm' + sd], .26 * sw);                                   // the arm swings against its leg
+      turn(rb['LowerArm' + sd], -.15 - .2 * Math.max(0, -sw));
+    }
+  };
+  // each part posed and baked; normals carried through the same skinning; on the ground: standing and walking by his
+  // lowest point, kneeling (kneeW 1) by his knees; for prayer the hips are placed where that posture puts them
+  const v = new THREE.Vector3(), w = new THREE.Vector3(), n0 = new THREE.Vector3();
+  const kneeGround = () => Math.min(rb.LowerLegL.getWorldPosition(v).y, rb.LowerLegR.getWorldPosition(v).y) - .05;
+  const snap = (hipZ, kneeW = 0) => {
+    const out = parts.map(pt => {
+      const src = pt.geometry, P = src.attributes.position, N = src.attributes.normal, n = P.count;
+      const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        pt.getVertexPosition(i, v); v.applyMatrix4(pt.matrixWorld);
+        w.fromBufferAttribute(P, i).addScaledVector(n0.fromBufferAttribute(N, i), .01); pt.applyBoneTransform(i, w); w.applyMatrix4(pt.matrixWorld).sub(v).normalize();
+        pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; nor[i * 3] = w.x; nor[i * 3 + 1] = w.y; nor[i * 3 + 2] = w.z;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      if (src.index) g.setIndex(new THREE.BufferAttribute(new Uint32Array(src.index.array), 1));
+      if (src.attributes.color && RIDER_BAKED.includes(pt.material.name)) { g.setAttribute('color', src.attributes.color.clone()); bakedRGB(g); }
+      return { mat: pt.material.name, name: pt.name, g };
+    });
+    let lo = Infinity;
+    out.forEach(q => { const A = q.g.attributes.position.array; for (let i = 1; i < A.length; i += 3) lo = Math.min(lo, A[i]); });
+    if (kneeW > 0) lo = lerp(lo, kneeGround(), kneeW);
+    const h = rb.Hips.getWorldPosition(new THREE.Vector3());
+    out.forEach(q => hipZ === undefined ? q.g.translate(0, -lo, 0) : q.g.translate(-h.x, -lo, hipZ - h.z));
+    out.lo = lo;
+    return out;
+  };
+  const poses = [0, 1, 2, 3, 4, 5, 6].map(p => { pose(p); return snap(); });
+  // prayer: standing, bowing, prostrating and sitting, each bone aimed along PR_POSES' joints (the pelvis tilting
+  // forward as he bows and prostrates); the frames between are blended bone by bone, in prFrames' order
+  const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), D = (a, b) => V(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+  const aim = (bone, child, dir) => {
+    upd(); const cur = child.getWorldPosition(V()).sub(bone.getWorldPosition(V())).normalize();
+    const q = Q().setFromUnitVectors(cur, dir).multiply(bone.getWorldQuaternion(Q()));
+    bone.quaternion.copy(bone.parent.getWorldQuaternion(Q()).invert().multiply(q)); upd();
+  };
+  const SX = { L: Math.sign(rb.UpperLegL.getWorldPosition(V()).x), R: Math.sign(rb.UpperLegR.getWorldPosition(V()).x) };
+  // the forehead (the face's most forward point at brow height), held in the head bone's frame
+  const skin = parts.find(pt => pt.material.name === 'Skin'), hb = rb.Head.getWorldPosition(V());
+  let brow = null;
+  for (let i = 0, P = skin.geometry.attributes.position; i < P.count; i++) {
+    skin.getVertexPosition(i, v); v.applyMatrix4(skin.matrixWorld);
+    if (v.y > hb.y + .08 && v.y < hb.y + .15 && Math.abs(v.x - hb.x) < .04 && (!brow || v.z > brow.z)) brow = v.clone();
+  }
+  const foreLocal = rb.Head.worldToLocal(brow.clone()), forehead = () => rb.Head.localToWorld(foreLocal.clone());
+  // the lowest point of the head as posed: the brow, or the turban where it stands out further
+  const tur = parts.find(pt => pt.name === 'turban');
+  const headLow = () => {
+    let lo = forehead().y;
+    if (tur) for (let i = 0, n = tur.geometry.attributes.position.count; i < n; i++) { tur.getVertexPosition(i, v); v.applyMatrix4(tur.matrixWorld); lo = Math.min(lo, v.y); }
+    return lo;
+  };
+  // prostration, solved on the ground: knees down and toes tucked under, the back bending down until the forehead
+  // meets the mat, the palms flat beside the head
+  const prostrate = () => {
+    turn(rb.Hips, .85);
+    for (const sd of ['L', 'R']) {
+      aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], V(SX[sd] * .03, -1, .3).normalize());
+      aim(rb['LowerLeg' + sd], rb['Foot' + sd], V(0, .2, -1).normalize());
+    }
+    for (const sd of ['L', 'R']) {
+      const an = rb['Foot' + sd].getWorldPosition(V()), L = an.distanceTo(rb['Toe' + sd].getWorldPosition(V()));
+      const dy = -Math.min(1, Math.max(0, an.y - kneeGround() - .02) / L);
+      aim(rb['Foot' + sd], rb['Toe' + sd], V(0, dy, -Math.sqrt(1 - dy * dy)));
+    }
+    const bend = th => {
+      const sp = V(0, -Math.sin(th), Math.cos(th));
+      for (const [b, c] of [['Abdomen', 'Torso'], ['Torso', 'Chest'], ['Chest', 'Neck']]) aim(rb[b], rb[c], sp);
+      aim(rb.Neck, rb.Head, V(0, -Math.sin(th + .7), Math.cos(th + .7)));
+      return headLow() - kneeGround();
+    };
+    let lo = 0, hi = 1.4;
+    for (let i = 0; i < 16; i++) { const mid = (lo + hi) / 2; if (bend(mid) > .004) lo = mid; else hi = mid; }
+    bend(hi);
+    const f = forehead(), g0 = kneeGround();
+    for (const sd of ['L', 'R']) {
+      const sx = SX[sd];
+      lrReach(rb['UpperArm' + sd], rb['LowerArm' + sd], rb['Wrist' + sd], V(f.x + sx * .2, g0 + .045, f.z - .04), V(sx, .4, -.3).normalize());
+      upd(); aim(rb['Wrist' + sd], rb['Middle1' + sd], V(sx * .15, -.12, 1).normalize());
+    }
+  };
+  const TILT = { Q: 0, R: .3, S: .85, J: .1 }, KEY = {};
+  for (const k of 'QRSJ') {
+    bones.forEach((b, i) => b.quaternion.copy(saved[i])); upd();
+    if (k === 'S') prostrate();
+    else if (k !== 'Q') {
+      const J = PR_POSES[k];
+      turn(rb.Hips, TILT[k]);
+      for (const sd of ['L', 'R']) {
+        const sx = SX[sd], m = q => [q[0] * sx, q[1], q[2]];
+        aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], D([.1 * sx, J.hip[1], J.hip[2]], m(J.kn)));
+        aim(rb['LowerLeg' + sd], rb['Foot' + sd], D(m(J.kn), m(J.an)));
+        if (k === 'J') aim(rb['Foot' + sd], rb['Toe' + sd], V(0, -.25, -1).normalize());   // sitting on his feet
+      }
+      const sp = D(J.hip, J.neck);
+      for (const [b, c] of [['Abdomen', 'Torso'], ['Torso', 'Chest'], ['Chest', 'Neck']]) aim(rb[b], rb[c], sp);
+      aim(rb.Neck, rb.Head, D(J.neck, J.head));
+      for (const sd of ['L', 'R']) {
+        const sx = SX[sd], m = q => [q[0] * sx, q[1], q[2]];
+        aim(rb['UpperArm' + sd], rb['LowerArm' + sd], D(m(J.sh), m(J.el)));
+        aim(rb['LowerArm' + sd], rb['Wrist' + sd], D(m(J.el), m(J.ha)));
+      }
+    }
+    KEY[k] = bones.map(b => b.quaternion.clone());
+  }
+  const FR = [...'QRSJ'].map(k => [k, k, 0]);
+  for (const [a, b] of [['Q', 'R'], ['Q', 'S'], ['S', 'J'], ['J', 'Q']]) for (let i = 1; i <= 3; i++) FR.push([a, b, i / 4]);
+  const pray = FR.map(([a, b, u]) => {
+    bones.forEach((bn, i) => bn.quaternion.slerpQuaternions(KEY[a][i], KEY[b][i], u)); upd();
+    const kw = k => (k === 'S' || k === 'J' ? 1 : 0);
+    return snap(lerp(PR_POSES[a].hip[2], PR_POSES[b].hip[2], u), lerp(kw(a), kw(b), u));
+  });
+  const ref = new THREE.Color(0, 0, 0), sk = poses[6].find(q => q.mat === 'Skin').g.attributes.color;
+  for (let i = 0; i < sk.count; i++) { ref.r += sk.getX(i) / sk.count; ref.g += sk.getY(i) / sk.count; ref.b += sk.getZ(i) / sk.count; }
+  // postures for single figures (the first pilgrims at the grave): posed(fn) poses him from rest and returns the bones'
+  // rotations; bake(qa, qb, u, kneeW) bakes a posture, or a blend of two, like the frames above
+  const api = {
+    rb, SX, V, turn, aim, kneeGround,
+    reach: (sd, target, pole) => { upd(); lrReach(rb['UpperArm' + sd], rb['LowerArm' + sd], rb['Wrist' + sd], target, pole); upd(); },
+  };
+  const posed = fn => { bones.forEach((b, i) => b.quaternion.copy(saved[i])); upd(); fn(api); upd(); return bones.map(b => b.quaternion.clone()); };
+  const bake = (qa, qb = qa, u = 0, kneeW = 0) => {
+    bones.forEach((b, i) => b.quaternion.slerpQuaternions(qa[i], qb[i], u)); upd();
+    return snap(undefined, kneeW);
+  };
+  return { poses, pray, ref, api, posed, bake, veilAlpha };
+}
+// the man's parts in one look's colours: robe, head covering and belt by the look, the skin's baked colours tinted to it
+function manGeo(parts, look) {
+  const head = look.head || 'turban';
+  const shows = { Turban: head === 'turban', Shawl: head === 'shawl', HeadHair: head === 'bare', Belt: !!look.belt, FaceVeil: false };
+  if (look.veil) shows.Eyes = shows.Eyebrows = shows.Hair = false;            // under the veil
+  const skin = new THREE.Color(look.skin || '#8a6446'), f = [skin.r / MAN.ref.r, skin.g / MAN.ref.g, skin.b / MAN.ref.b];
+  const hair = look.hair || '#1c1510';
+  const col = { Robe: look.robe, Turban: look.cover, Shawl: look.cover, Belt: look.belt, Hair: hair, Eyebrows: hair, HeadHair: hair, Leather: '#3a2a1c' };
+  return mergeGeometries(parts.filter(q => shows[q.mat] !== false).map(q => {
+    const g = q.g.clone();
+    if (g.attributes.color) {
+      if (q.mat === 'Skin') { const C = g.attributes.color; for (let i = 0; i < C.count; i++) C.setXYZ(i, C.getX(i) * f[0], C.getY(i) * f[1], C.getZ(i) * f[2]); }
+      return g;
+    }
+    return colorize(g, new THREE.Color(col[q.mat] || '#8a8070'));
+  }));
+}
 function robedGeo(pose, look) {
+  return MAN ? manGeo(MAN.poses[pose].filter(q => q.name !== 'robe_pray'), look) : robedGeoSimple(pose, look);
+}
+// the light primitive figure, for people far away
+function robedGeoSimple(pose, look) {
   const parts = [], walking = pose < 6, sw = walking ? Math.sin(pose / 6 * TAU) : 0;
   for (const side of [-1, 1]) {
     const a = .42 * sw * side;
@@ -1640,28 +2319,34 @@ function robedGeo(pose, look) {
   const g = mergeGeometries(parts); g.computeVertexNormals();
   return g;
 }
+const CROWD_FAR2 = 45 * 45, crowdCam = new THREE.Vector3();
 class Crowd {
   constructor(group, looks, capacity) {
-    this.meshes = looks.map(look => Array.from({ length: 7 }, (_, p) => {
-      const im = new THREE.InstancedMesh(robedGeo(p, look), VC_FLAT, capacity);
+    const mk = (geo, mat) => {
+      const im = new THREE.InstancedMesh(geo, mat, capacity);
       im.count = 0; im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true;
       group.add(im); return im;
-    }));
+    };
+    this.meshes = looks.map(look => Array.from({ length: 7 }, (_, p) => mk(robedGeo(p, look), VC_MAT)));
+    this.far = looks.map(look => Array.from({ length: 7 }, (_, p) => mk(robedGeoSimple(p, look), VC_FLAT)));
     this.items = [];
     this.nLooks = looks.length;
   }
   add(item) { item.look = item.look ?? (this.items.length % this.nLooks); item.ph = item.ph ?? Math.random(); this.items.push(item); }
   // each item.at(t) returns [x, z, heading, speed]; hidden when it returns null
   update(t, Hf) {
-    const counts = this.meshes.map(l => l.map(() => 0));
+    const counts = this.meshes.map(l => l.map(() => 0)), fcounts = this.far.map(l => l.map(() => 0));
+    const g = this.meshes[0][0].parent, cam = g ? g.worldToLocal(crowdCam.copy(camera.position)) : camera.position;
     for (const it of this.items) {
       const r = it.at(t); if (!r) continue;
       const [x, z, hd, sp] = r;
       const pose = sp > .15 ? Math.floor(((t * sp / 1.25 + it.ph) % 1 + 1) % 1 * 6) : 6;
-      const s = it.scale || 1;
-      place(this.meshes[it.look][pose], counts[it.look][pose]++, x, Hf(x, z), z, hd, s);
+      const s = it.scale || 1, far = (x - cam.x) ** 2 + (z - cam.z) ** 2 > CROWD_FAR2;
+      const [list, cn] = far ? [this.far, fcounts] : [this.meshes, counts];
+      place(list[it.look][pose], cn[it.look][pose]++, x, Hf(x, z), z, hd, s);
     }
     this.meshes.forEach((l, v) => l.forEach((im, p) => { im.count = counts[v][p]; im.instanceMatrix.needsUpdate = true; }));
+    this.far.forEach((l, v) => l.forEach((im, p) => { im.count = fcounts[v][p]; im.instanceMatrix.needsUpdate = true; }));
   }
 }
 const LOOKS = {
@@ -1680,39 +2365,271 @@ const LOOKS = {
   guards: [{ robe: '#5a1d18', skin: '#7a5a3e', head: 'turban', cover: '#1f1a18', belt: '#9aa0a8' }],
 };
 
-// ─────────── letters: each courier's bundle hops from the saddle onto a heap that grows bottom-up ───────────
-class Letters {
-  constructor(group, at, deliveries, preload, seed) {
-    const r = rng(seed);
-    const scroll = mergeGeometries([
-      part(new THREE.CylinderGeometry(.035, .035, .3, 6), M4(0, 0, 0, 0, 0, Math.PI / 2), '#efe2bf'),
-      part(new THREE.CylinderGeometry(.038, .038, .04, 6), M4(0, 0, 0, 0, 0, Math.PI / 2), '#8e2a22'),
-    ]);
-    const total = preload + deliveries.reduce((a, d) => a + d.n, 0);
-    this.pile = new THREE.InstancedMesh(scroll, VC_FLAT, total); this.pile.count = 0; this.pile.castShadow = this.pile.receiveShadow = true;
-    this.im = new THREE.InstancedMesh(scroll, VC_FLAT, 40); this.im.count = 0; this.im.frustumCulled = false; this.im.castShadow = true;
-    group.add(this.pile, this.im);
-    this.spots = Array.from({ length: total }, (_, i) => {
-      const h = Math.pow(i / total, 1.25) * .95, R = 1.35 * (1 - h / 1.1) * Math.sqrt(r()), a = r() * TAU;
-      return [at[0] + Math.cos(a) * R, at[1] + .05 + h, at[2] + Math.sin(a) * R, r() * TAU, (r() - .5) * .5];
+// ─────────── letters: rolled, tied and sealed, brought in bundles and stacked on a mat in the camp ───────────
+const PARCH_TINTS = ['#efe2bf', '#e6d4a8', '#f3ead2', '#dcc595', '#e9d9b0', '#d8c094'];
+const CORD_COLS = ['#7a4a2a', '#8e2a22', '#5e4a32'];
+// one letter rolled along x: the rolled edge shows at each end; a cord round it and, on most, a clay seal
+function scrollParts(r, len, rad, x0, y0, z0) {
+  const c = new THREE.Color(PARCH_TINTS[Math.floor(r() * PARCH_TINTS.length)]), edge = c.clone().multiplyScalar(.74);
+  const out = [part(new THREE.CylinderGeometry(rad, rad, len, 8, 1, true), M4(x0, y0, z0, 0, 0, Math.PI / 2), c)];
+  for (const s of [-1, 1]) {
+    out.push(part(new THREE.CircleGeometry(rad, 8), M4(x0 + s * len / 2, y0, z0, 0, s * Math.PI / 2, 0), edge));
+    out.push(part(new THREE.RingGeometry(rad * .42, rad * .6, 8), M4(x0 + s * (len / 2 + .0008), y0, z0, 0, s * Math.PI / 2, 0), c));
+  }
+  const cx = x0 + (r() - .5) * len * .35;
+  out.push(part(new THREE.TorusGeometry(rad + .002, .0032, 3, 8), M4(cx, y0, z0, 0, Math.PI / 2, 0), CORD_COLS[Math.floor(r() * 3)]));
+  if (r() < .65) out.push(part(new THREE.SphereGeometry(.0095, 6, 4), M4(cx, y0 + rad + .003, z0, 0, 0, 0, 1, .5, 1), '#6e2016'));
+  return out;
+}
+const scrollGeo = r => mergeGeometries(scrollParts(r, .2 + r() * .08, .02 + r() * .006, 0, 0, 0));
+// a bundle: seven letters packed round one, their ends a little uneven, tied twice and knotted; along x, resting on y = 0
+function bundleGeo(seed) {
+  const r = rng(seed), parts = [], R = .046;
+  [[0, 0], ...Array.from({ length: 6 }, (_, k) => [Math.cos(k / 6 * TAU + .3) * R, Math.sin(k / 6 * TAU + .3) * R])].forEach(([y, z]) => {
+    parts.push(...scrollParts(r, .2 + r() * .07, .021 + r() * .004, (r() - .5) * .035, .07 + y, z));
+  });
+  for (const s of [-1, 1]) parts.push(part(new THREE.TorusGeometry(.072, .0055, 4, 14), M4(s * .055, .07, 0, 0, Math.PI / 2, 0), '#5e4128'));
+  parts.push(part(new THREE.SphereGeometry(.011, 6, 4), M4(.055, .145, 0), '#4e3520'));
+  parts.push(part(new THREE.CylinderGeometry(.0035, .003, .08, 4), M4(.068, .118, .018, .5, 0, .5), '#5e4128'));
+  return mergeGeometries(parts);
+}
+let BUNDLE_GEOS = null;
+const bundleGeos = () => BUNDLE_GEOS || (BUNDLE_GEOS = [11, 23, 37, 51].map(bundleGeo));
+// an open chest, full to the brim with letters; its front faces +z
+function chestGeo(r) {
+  const wood = '#6b4a2c', band = '#3a2a1c', W = .9, D = .55, Hh = .45, t = .03, parts = [];
+  parts.push(part(new THREE.BoxGeometry(W, t, D), M4(0, t / 2, 0), wood));
+  for (const s of [-1, 1]) {
+    parts.push(part(new THREE.BoxGeometry(W, Hh, t), M4(0, Hh / 2, s * (D / 2 - t / 2)), wood));
+    parts.push(part(new THREE.BoxGeometry(t, Hh, D), M4(s * (W / 2 - t / 2), Hh / 2, 0), wood));
+  }
+  for (const x of [-.3, .3]) parts.push(part(new THREE.BoxGeometry(.04, Hh + .01, D + .012), M4(x, Hh / 2, 0), band));
+  const lid = new THREE.BoxGeometry(W, .04, D); lid.translate(0, .02, D / 2);
+  parts.push(part(lid, M4(0, Hh, -D / 2, -1.9), wood));
+  for (const x of [-.3, .3]) { const b = new THREE.BoxGeometry(.04, .05, D + .01); b.translate(0, .02, D / 2); parts.push(part(b, M4(x, Hh, -D / 2, -1.9), band)); }
+  const fill = [];
+  for (let i = 0; i < 26; i++) {
+    const y = Hh - .1 + Math.pow(r(), .7) * .2;
+    fill.push(scrollGeo(r).applyMatrix4(M4((r() - .5) * (W - .2), y, (r() - .5) * (D - .16), (r() - .5) * .9, r() * TAU, (r() - .5) * .6)));
+  }
+  return mergeGeometries([mergeGeometries(parts), ...fill]);
+}
+// a man's postures for carrying letters: walking empty-handed or with a bundle held in front, reaching up to a
+// saddlebag, and bending to lay a bundle down; each frame keeps the point between his hands where the bundle sits
+let BEARER_FR = null;
+function bearerFrames() {
+  if (BEARER_FR) return BEARER_FR;
+  const A = MAN.api, { rb, SX, V, turn, aim } = A;
+  const legs = (p, amp) => { for (const [sd, off] of [['L', 0], ['R', Math.PI]]) { const ph = p / 6 * TAU + off, sw = Math.sin(ph); turn(rb['UpperLeg' + sd], -amp * sw); turn(rb['LowerLeg' + sd], .08 + amp * 1.3 * Math.max(0, Math.cos(ph))); } };
+  const arms = (p, amp) => { for (const [sd, off] of [['L', 0], ['R', Math.PI]]) { const sw = Math.sin(p / 6 * TAU + off); turn(rb['UpperArm' + sd], .7 * amp * sw); turn(rb['LowerArm' + sd], -.15 - .2 * Math.max(0, -sw)); } };
+  const hold = (y, z, x = .15, pole = [.6, -1, -.4]) => { for (const sd of ['L', 'R']) A.reach(sd, V(SX[sd] * x, y, z), V(SX[sd] * pole[0], pole[1], pole[2]).normalize()); };
+  const footY = () => Math.min(rb.FootL.getWorldPosition(V()).y, rb.FootR.getWorldPosition(V()).y);
+  const P = {
+    walkE: [0, 1, 2, 3, 4, 5].map(p => MAN.posed(() => { legs(p, .3); arms(p, .3); })),
+    walkC: [0, 1, 2, 3, 4, 5].map(p => MAN.posed(() => { legs(p, .24); hold(1.06, .32); })),
+    standE: MAN.posed(() => {}),
+    standC: MAN.posed(() => hold(1.06, .32)),
+    up: MAN.posed(() => { turn(rb.Abdomen, -.06); turn(rb.Neck, -.32); hold(1.8, .4, .13, [.8, -.4, -.6]); }),
+    down: MAN.posed(() => {
+      const f0 = footY();
+      for (const sd of ['L', 'R']) { aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], V(SX[sd] * .06, -1, .5).normalize()); aim(rb['LowerLeg' + sd], rb['Foot' + sd], V(0, -1, -.22).normalize()); }
+      const lean = V(0, Math.cos(.9), Math.sin(.9));
+      for (const [b, c] of [['Abdomen', 'Torso'], ['Torso', 'Chest'], ['Chest', 'Neck']]) aim(rb[b], rb[c], lean);
+      aim(rb.Neck, rb.Head, V(0, Math.cos(1.15), Math.sin(1.15)));
+      hold(.6 + (footY() - f0), .6, .15, [.6, -.3, -.8]);
+    }),
+  };
+  const bk = (qa, qb = qa, u = 0) => {
+    const parts = MAN.bake(qa, qb, u), hold = rb.Middle1L.getWorldPosition(V()).add(rb.Middle1R.getWorldPosition(V())).multiplyScalar(.5);
+    hold.y -= parts.lo;
+    return { parts: parts.filter(q => q.name !== 'robe_pray'), hold };
+  };
+  BEARER_FR = {
+    walkE: P.walkE.map(q => bk(q)), walkC: P.walkC.map(q => bk(q)), standE: bk(P.standE), standC: bk(P.standC),
+    up: [bk(P.standE, P.up, .5), bk(P.up), bk(P.up, P.standC, .5)],
+    down: [bk(P.standC, P.down, .5), bk(P.down), bk(P.down, P.standE, .5)],
+  };
+  return BEARER_FR;
+}
+const BEARER_LOOKS = [
+  { robe: '#d9cdb4', skin: '#8a6446', head: 'turban', cover: '#f0ebe0', belt: '#6b4a2c' },
+  { robe: '#5d4a3a', skin: '#7a5a3e', head: 'turban', cover: '#e8e2d4' },
+  { robe: '#3d4a66', skin: '#a07656', head: 'turban', cover: '#2a2522', belt: '#8a6a3a' },
+  { robe: '#8a6d4a', skin: '#6e4c34', head: 'shawl', cover: '#c9b99a' },
+];
+const angTo = (a, b, u) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return a + d * u; };
+const MAT_Y = .07;
+const L_Q = new THREE.Quaternion(), L_Q2 = new THREE.Quaternion(), L_P = new THREE.Vector3(), L_P2 = new THREE.Vector3(), L_S = new THREE.Vector3(1, 1, 1), L_Y = new THREE.Vector3(0, 1, 0), L_M = new THREE.Matrix4();
+// The letters' place in the camp: a mat with three log-stacks of bundles (their rolled ends towards the camera, which
+// looks along F), an open chest and a few loose letters. Couriers halt side-on behind the mat; men from the camp
+// take the bundles out of their saddlebags one at a time, carry them over and lay them on the middle stack.
+class LetterCollection {
+  constructor(group, hf, heapAt, F, couriers) {
+    this.hf = hf; this.heap = heapAt; this.F = F;
+    const RT = [-F[1], F[0]], at = (f, rt) => [heapAt[0] + F[0] * f + RT[0] * rt, heapAt[1] + F[1] * f + RT[1] * rt];
+    this.at = at;
+    const r = rng(77), BG = bundleGeos();
+    // the mat, lying on the ground
+    const mat = new THREE.PlaneGeometry(4.6, 2.7, 16, 10), P = mat.attributes.position;
+    for (let i = 0; i < P.count; i++) { const [x, z] = at(-P.getY(i) - .15, P.getX(i) - .15); P.setXYZ(i, x, hf(x, z) + MAT_Y, z); }
+    mat.computeVertexNormals();
+    const rug = new THREE.Mesh(mat, M.rugC.clone()); rug.material.side = THREE.DoubleSide; rug.receiveShadow = true; group.add(rug);
+    // three stacks, each a pile like logs: seven bundles wide at the bottom, four at the top
+    const yawB = Math.atan2(-F[1], F[0]), per = [0, 0, 0, 0];
+    const stack = lat => { const out = []; for (let L = 0; L < 4; L++) for (let i = 0, n = 7 - L; i < n; i++) {
+      const [x, z] = at((r() - .5) * .03, lat + (i - (n - 1) / 2) * .152 + (r() - .5) * .012), v = (out.length + Math.round(lat * 3)) & 3;
+      out.push({ p: new THREE.Vector3(x, hf(x, z) + MAT_Y + .006 + L * .13, z), q: new THREE.Quaternion().setFromAxisAngle(L_Y, yawB + (r() - .5) * .08), v, k: per[v]++, L, i, rt: lat + (i - (n - 1) / 2) * .152 });
+    } return out; };
+    // filled in this order: the left stack, most of the right one, then the middle one, which the couriers' bundles complete
+    const [left, mid, right] = [-1.18, 0, 1.18].map(stack);
+    this.slots = [...left, ...right.slice(0, 18), ...mid, ...right.slice(18)]; this.mid = mid;
+    this.stacks = BG.map((g, v) => { const im = new THREE.InstancedMesh(g, VC_MAT, per[v]); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; group.add(im); return im; });
+    this.preload = 22 + 18 + 6;                               // the left stack, most of the right, the middle one begun
+    // the chest beyond the mat's right end, and letters lying loose on the mat
+    const chest = new THREE.Mesh(chestGeo(r), VC_MAT), [cx, cz] = at(-.35, 2.75);
+    chest.position.set(cx, hf(cx, cz), cz); chest.rotation.y = Math.atan2(-F[0], -F[1]) - .25; chest.castShadow = chest.receiveShadow = true; group.add(chest);
+    const loose = [[-.9, -2.0], [-1.0, -1.7], [-.95, 1.9], [-.7, 2.05], [.9, -2.05], [-1.05, .7]].map(([f, rt]) => {
+      const [x, z] = at(f, rt); return scrollGeo(r).applyMatrix4(M4(x, hf(x, z) + MAT_Y + .026, z, 0, r() * TAU, 0));
     });
-    this.items = []; let k = preload;
-    deliveries.forEach(d => { for (let j = 0; j < d.n; j++) this.items.push({ i: k++, t0: d.t + j * .09, from: [d.from[0] + (r() - .5) * .5, d.from[1], d.from[2] + (r() - .5) * .5], turn: (r() - .5) * 2 }); });
-    this.preload = preload; this.total = total;
+    const lm = new THREE.Mesh(mergeGeometries(loose), VC_MAT); lm.castShadow = true; group.add(lm);
+    this.decor = [rug, chest, lm];
+    // saddlebags behind each courier's seat, bundles standing up in them; the bag nearer the mat is the one emptied
+    this.couriers = couriers; this.bags = couriers.map(c => {
+      const bags = [];
+      for (const sx of [-1, 1]) {
+        const bag = new THREE.Group(); bag.position.set(sx * .48, -.32, -.62); bag.rotation.z = sx * .12; c.top.add(bag);
+        const body = new THREE.CylinderGeometry(.2, .17, .42, 12, 1); body.scale(.62, 1, 1.25);
+        const leather = new THREE.Mesh(body, M.leather); leather.castShadow = true; bag.add(leather);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(.2, .018, 4, 16), M.leather); rim.rotation.x = Math.PI / 2; rim.scale.set(.62, 1.25, 1); rim.position.y = .21; bag.add(rim);
+        const flap = new THREE.Mesh(new THREE.BoxGeometry(.2, .03, .42), M.leather); flap.position.set(sx * .13, .16, 0); flap.rotation.z = sx * 1.25; bag.add(flap);
+        const bs = [-.14, 0, .14].map((z, j) => { const m = new THREE.Mesh(BG[(j + c.idx) % 4], VC_MAT); m.position.set(.07, .2, z); m.rotation.set(0, 0, Math.PI / 2); m.castShadow = true; bag.add(m); return m; });
+        bags.push(bs);
+      }
+      const strap = new THREE.Mesh(new THREE.BoxGeometry(.92, .025, .1), M.leather); strap.position.set(0, .14, -.62); c.top.add(strap);
+      return bags;
+    });
+    this.schedule();
+    // the men who carry them
+    const FR = bearerFrames();
+    this.men = this.plans.map((plan, i) => {
+      const look = BEARER_LOOKS[i % BEARER_LOOKS.length], geo = f => manGeo(f.parts, look);
+      const geos = { walkE: FR.walkE.map(geo), walkC: FR.walkC.map(geo), standE: geo(FR.standE), standC: geo(FR.standC), up: FR.up.map(geo), down: FR.down.map(geo) };
+      const m = new THREE.Mesh(geos.standE, VC_MAT); m.castShadow = m.receiveShadow = true; m.rotation.order = 'YXZ'; group.add(m);
+      const held = new THREE.Mesh(BG[0], VC_MAT); held.castShadow = true; held.visible = false; held.matrixAutoUpdate = false; group.add(held);
+      return { m, held, geos, plan };
+    });
+  }
+  // each bundle in turn goes to whichever man can reach its camel soonest, once the camel has stopped
+  schedule() {
+    // work stops before the Imam's light appears (12.6 s): bundles that cannot be laid down by then stay in the bags
+    const v = 1.35, F = this.F, hf = this.hf, faceF = Math.atan2(-F[0], -F[1]), UP = 1.45, DOWN = 1.35, STOP = 12.2;
+    const spotRt = [-.6, 0, .6], spots = spotRt.map(rt => this.at(.85, rt));
+    const head = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]), dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    const tasks = [];
+    this.couriers.forEach((c, k) => {
+      // the camel where it stops, and the bundles in its bag on the mat's side
+      poseOnPath(c.group, c.route, c.route.getLength(), 0, hf); c.group.updateMatrixWorld(true);
+      const near = this.bags[k].map(bs => ({ bs, d: (bs[0].getWorldPosition(L_P).x - c.group.position.x) * F[0] + (L_P.z - c.group.position.z) * F[1] })).sort((a, b) => a.d - b.d)[0].bs;
+      near.forEach((m, j) => {
+        const pos = new THREE.Vector3(), quat = new THREE.Quaternion(); m.matrixWorld.decompose(pos, quat, new THREE.Vector3());
+        const stand = [pos.x - F[0] * .62, pos.z - F[1] * .62];
+        tasks.push({ m, pos, quat, stand, face: head(stand, [pos.x, pos.z]), avail: c.arrive + .7 + j * .3 });
+      });
+    });
+    tasks.sort((a, b) => a.avail - b.avail);
+    const men = spots.map(p => ({ pos: p, t: 0, yaw: faceF, segs: [] })), busyTill = new Map();
+    const places = [], ready = (m, task) => Math.max(m.t + dist(m.pos, task.stand) / v, task.avail);
+    for (const task of tasks) {
+      task.avail = Math.max(task.avail, busyTill.get(task.m.parent) || 0);
+      const m = men.reduce((a, b) => (ready(a, task) <= ready(b, task) ? a : b)), spot = spots[men.indexOf(m)];
+      const d1 = dist(m.pos, task.stand), leave = Math.max(m.t, task.avail - d1 / v + .4), arrive = leave + d1 / v;
+      const back = arrive + UP + dist(task.stand, spot) / v;
+      if (back + DOWN > STOP) { task.slot = null; continue; }
+      if (leave > m.t) m.segs.push({ type: 'idle', t0: m.t, t1: leave, pos: m.pos, yaw: m.yaw });
+      m.segs.push({ type: 'walk', t0: leave, t1: arrive, from: m.pos, to: task.stand, yaw0: m.yaw });
+      m.segs.push({ type: 'up', t0: arrive, t1: arrive + UP, pos: task.stand, yaw0: head(m.pos, task.stand), yaw: task.face, task });
+      m.segs.push({ type: 'walk', t0: arrive + UP, t1: back, from: task.stand, to: spot, yaw0: task.face, task });
+      const pl = { type: 'down', t0: back, t1: back + DOWN, pos: spot, yaw0: head(task.stand, spot), yaw: faceF, task };
+      m.segs.push(pl); places.push(pl);
+      task.takeT = arrive + UP * .35; task.fillT = back + DOWN * .6; task.spotRt = spotRt[men.indexOf(m)];
+      busyTill.set(task.m.parent, arrive + UP + .3);
+      m.pos = spot; m.t = back + DOWN; m.yaw = faceF;
+    }
+    // the bundles go onto the stack in the order they are laid down
+    // then each man goes to stand aside at the edge of the mat, turned towards where the letter is read
+    const reading = this.at(-1.05, 0);
+    [this.at(.5, -2.3), this.at(1.2, -1.7), this.at(.9, 2.1)].forEach((p, i) => {
+      const m = men[i], leave = Math.max(m.t, STOP - .2), arrive = leave + dist(m.pos, p) / v;
+      if (leave > m.t) m.segs.push({ type: 'idle', t0: m.t, t1: leave, pos: m.pos, yaw: m.yaw });
+      m.segs.push({ type: 'walk', t0: leave, t1: arrive, from: m.pos, to: p, yaw0: m.yaw });
+      m.pos = p; m.t = arrive; m.yaw = head(p, reading);
+      m.segs.push({ type: 'idle', t0: arrive, t1: 1e9, pos: p, yaw: m.yaw, turnFrom: head(m.segs[m.segs.length - 1].from, p) });
+    });
+    const full = new Set(this.slots.slice(0, this.preload)), at = (L, i) => this.mid.find(q => q.L === L && q.i === i);
+    const holds = q => q.L === 0 || (full.has(at(q.L - 1, q.i)) && full.has(at(q.L - 1, q.i + 1)));
+    places.sort((a, b) => a.t0 - b.t0).forEach(pl => {
+      const free = this.mid.filter(q => !full.has(q) && holds(q));
+      const q = free.reduce((a, b) => (Math.abs(a.rt - pl.task.spotRt) + a.L * .25 <= Math.abs(b.rt - pl.task.spotRt) + b.L * .25 ? a : b));
+      full.add(q); pl.task.slot = q; pl.task.m.geometry = bundleGeos()[q.v];
+    });
+    this.tasks = tasks.filter(k => k.slot); this.plans = men;
+  }
+  show(stacks, people = stacks) {
+    this.stacks.forEach(im => { im.visible = stacks; }); this.decor.forEach(o => { o.visible = stacks; });
+    this.men.forEach(w => { w.m.visible = people; w.held.visible = false; });
+    this.tasks.forEach(k => { k.m.visible = true; });
+    this._shown = -1;
   }
   update(t) {
-    let landed = this.preload, f = 0;
-    for (const it of this.items) {
-      const u = (t - it.t0) / .8;
-      if (u >= 1) { landed++; continue; }
-      if (u <= 0 || f >= 40) continue;
-      const [sx, sy, sz] = it.from, [ex, ey, ez, ry, tilt] = this.spots[it.i], e = u * u * (3 - 2 * u);
-      this.im.setMatrixAt(f++, M4(lerp(sx, ex, e), lerp(sy, ey, e) + Math.sin(Math.PI * u) * 1.1, lerp(sz, ez, e), 0, ry + it.turn * (1 - e), tilt * e, 1.6));
+    const done = this.tasks.filter(k => t >= k.fillT).length;
+    if (done !== this._shown) {
+      this._shown = done;
+      this.slots.forEach((s, i) => {
+        const on = i < this.preload || this.tasks.some(k => k.slot === s && t >= k.fillT);
+        this.stacks[s.v].setMatrixAt(s.k, on ? L_M.compose(s.p, s.q, L_S) : L_M.makeScale(0, 0, 0));
+      });
+      this.stacks.forEach(im => { im.instanceMatrix.needsUpdate = true; });
     }
-    this.im.count = f; this.im.instanceMatrix.needsUpdate = true;
-    for (let i = this.pile.count; i < landed; i++) { const [x, y, z, ry, tilt] = this.spots[i]; this.pile.setMatrixAt(i, M4(x, y, z, 0, ry, tilt, 1.6)); }
-    if (landed !== this.pile.count) { this.pile.count = landed; this.pile.instanceMatrix.needsUpdate = true; }
-    return landed / this.total;
+    for (const k of this.tasks) k.m.visible = t < k.takeT;
+    if (this.men[0].m.visible) for (const w of this.men) this.pose(w, t);
+  }
+  // one man at time t: where he is, which frame of which posture, and the bundle he carries, if any
+  pose(w, t) {
+    const segs = w.plan.segs, G = w.geos, FR = bearerFrames(), hf = this.hf;
+    const s = segs.find(q => t >= q.t0 && t < q.t1);
+    let x, z, yaw, geo = G.standE, fr = null, task = null, blend = null;
+    if (!s) { [x, z] = w.plan.pos; yaw = w.plan.yaw; }
+    else {
+      const u = (t - s.t0) / (s.t1 - s.t0);
+      yaw = s.yaw;
+      if (s.type === 'idle') { [x, z] = s.pos; if (s.turnFrom !== undefined) yaw = angTo(s.turnFrom, s.yaw, smooth(s.t0, s.t0 + .5, t)); }
+      else if (s.type === 'walk') {
+        const d = Math.hypot(s.to[0] - s.from[0], s.to[1] - s.from[1]), f = Math.floor(((u * d / 1.15) % 1) * 6) % 6;
+        x = lerp(s.from[0], s.to[0], u); z = lerp(s.from[1], s.to[1], u);
+        yaw = d > .05 ? angTo(s.yaw0, Math.atan2(s.to[0] - s.from[0], s.to[1] - s.from[1]), smooth(s.t0, s.t0 + .35, t)) : s.yaw0;
+        if (s.task) { geo = G.walkC[f]; fr = FR.walkC[f]; task = s.task; } else geo = G.walkE[f];
+      } else if (s.type === 'up') {
+        // reach up (to .35), draw the bundle out of the bag and turn it across his hands (.35-.6), bring it down
+        [x, z] = s.pos; yaw = angTo(s.yaw0, s.yaw, smooth(s.t0, s.t0 + .3, t));
+        if (u < .35) geo = u < .14 ? G.standE : u < .25 ? G.up[0] : G.up[1];
+        else if (u < .6) { geo = G.up[1]; fr = FR.up[1]; task = s.task; blend = [s.task.pos, s.task.quat, 1 - smooth(.35, .6, u)]; }
+        else { [geo, fr] = u < .8 ? [G.up[2], FR.up[2]] : [G.standC, FR.standC]; task = s.task; }
+      } else {
+        // bend down (to .4), lay the bundle in its place on the stack (.4-.6), straighten up
+        [x, z] = s.pos; yaw = angTo(s.yaw0, s.yaw, smooth(s.t0, s.t0 + .3, t));
+        if (u < .4) { [geo, fr] = u < .2 ? [G.down[0], FR.down[0]] : [G.down[1], FR.down[1]]; task = s.task; }
+        else if (u < .6) { geo = G.down[1]; fr = FR.down[1]; task = s.task; blend = [s.task.slot.p, s.task.slot.q, smooth(.4, .6, u)]; }
+        else geo = u < .8 ? G.down[2] : G.standE;
+      }
+    }
+    w.m.geometry = geo; w.m.position.set(x, hf(x, z), z); w.m.rotation.y = yaw;
+    if (!task) { w.held.visible = false; return; }
+    // the bundle lies across his hands, its middle between them; while it changes hands it moves from or to its place
+    const c = Math.cos(yaw), sn = Math.sin(yaw), h = fr.hold;
+    L_P.set(x + h.x * c + h.z * sn, hf(x, z) + h.y - .07, z - h.x * sn + h.z * c); L_Q.setFromAxisAngle(L_Y, yaw);
+    if (blend) { L_P.lerp(blend[0], blend[2]); L_Q.slerp(blend[1], blend[2]); }
+    w.held.geometry = bundleGeos()[task.slot.v]; w.held.visible = true;
+    w.held.matrix.compose(L_P, L_Q, L_S); w.held.matrixWorldNeedsUpdate = true;
   }
 }
 // a letter on a rod that unrolls downwards; the wrapped part curls around a small roll
@@ -1998,23 +2915,25 @@ function buildMecca(T) {
     });
   }
   crowd.on = false;
-  // couriers come down the north road one after another and stop beside the heap of letters
-  const couriers = [0, 1, 2, 3, 4].map(i => new CamelUnit(i % 2 ? T.camelTplA : T.camelTplB, 'rider', 20 + i));
-  const heapAt = [MEC_CAMP[0] - 6, MEC_CAMP[1] - 28], stops = [[-51, -174], [-44, -176.5], [-38.5, -173], [-54, -180], [-47, -182]];
-  couriers.forEach((c, k) => {
-    const [sx, sz] = stops[k];
-    c.route = new THREE.CatmullRomCurve3([mecNorth(.37), mecNorth(.28), [-76, -186], [-58, -176], [sx - 6, sz - 3], [sx, sz]].map(p => new THREE.Vector3(p[0], 0, p[1])));
-    c.arrive = 2.5 + k * 2.4; c.from = [sx, hMec(sx, sz) + 2.45, sz];
-    group.add(c.group);
+  // couriers come down the north road one after another and halt side-on behind the mat where the letters are kept
+  // (LF: the way the closing shot looks, from the camera to the stacks)
+  const heapAt = [MEC_CAMP[0] - 6, MEC_CAMP[1] - 28], camEnd = [-43.41, -164.44];
+  const fl = Math.hypot(heapAt[0] - camEnd[0], heapAt[1] - camEnd[1]), LF = [(heapAt[0] - camEnd[0]) / fl, (heapAt[1] - camEnd[1]) / fl];
+  const lat = (f, rt) => [heapAt[0] + LF[0] * f - LF[1] * rt, heapAt[1] + LF[1] * f + LF[0] * rt];
+  const couriers = [4.1, .5, -3.1, -6.7].map((rt, k) => {
+    const c = new CamelUnit(k % 2 ? T.camelTplA : T.camelTplB, 'rider', 20 + k);
+    c.route = new THREE.CatmullRomCurve3([mecNorth(.37), mecNorth(.28), lat(12, rt - 9), lat(3.8, rt - 4.5), lat(3.8, rt)].map(p => new THREE.Vector3(p[0], 0, p[1])));
+    c.arrive = 1.6 + k * 2; group.add(c.group);
+    return c;
   });
   const envoy = new HorseUnit(T.horse, 'grey', false, 7);
   envoy.noor = new Noor(1.1, 16); envoy.group.add(envoy.noor.group);
   const envoyLight = envoy.noor.light;
   const envoyPath = new THREE.CatmullRomCurve3([[MEC_CAMP[0] - 4, MEC_CAMP[1] + 2], [MEC_CAMP[0] - 16, MEC_CAMP[1] - 10], ...Array.from({ length: 9 }, (_, i) => mecNorth(.2 + i * .1))].map(p => new THREE.Vector3(p[0], 0, p[1])));
   group.add(envoy.group);
-  const letters = new Letters(group, [heapAt[0], hMec(...heapAt), heapAt[1]], couriers.map(c => ({ t: c.arrive + .5, from: c.from, n: 22 })), 30, 5);
+  const letters = new LetterCollection(group, hMec, heapAt, LF, couriers);
   // the letter that is read: it rises from the heap towards the camera and opens in front of the Imam's light
-  const parch = new Parchment(), camEnd = [-43.41, -164.44], dx = camEnd[0] - heapAt[0], dz = camEnd[1] - heapAt[1], dl = Math.hypot(dx, dz), yaw = Math.atan2(dx, dz);
+  const parch = new Parchment(), dx = camEnd[0] - heapAt[0], dz = camEnd[1] - heapAt[1], dl = Math.hypot(dx, dz), yaw = Math.atan2(dx, dz);
   parch.at = [heapAt[0] + dx / dl * 1.05, heapAt[1] + dz / dl * 1.05]; parch.yaw = yaw; parch.y0 = hMec(...parch.at);
   parch.group.rotation.set(-.08, yaw, 0, 'YXZ'); group.add(parch.group); parch.group.visible = false;
   const reader = new Noor(1.35, 7); reader.group.position.set(parch.at[0] - Math.cos(yaw) * .82 - Math.sin(yaw) * .3, parch.y0 + 2.0, parch.at[1] + Math.sin(yaw) * .82 - Math.cos(yaw) * .3); group.add(reader.group); reader.group.visible = false;
@@ -2195,19 +3114,19 @@ const CH23_STEPS = [
     scene: 'mecca', env: 'evening', dur: 21, mapStop: 1, km: 450, chN: 2,
     ch: 'Chapter 2 · Refuge in Mecca', title: 'Letters from Kufa', place: 'Mecca', ar: 'مكة المكرمة', date: 'Ramadan 60 AH',
     stat: () => `≈ ${fmt(Math.round((SCENES.mecca.lettersDone || 0) * 120) * 100)} letters`,
-    narrExtra: () => [{ say: 'One of the letters read: "' + LETTER_KUFA.lines[0][1] + '"', sub: '', at: 17.8, gap: 700 }],
+    narrExtra: () => [{ say: spokenSeq(['One of the letters read: "' + LETTER_KUFA.lines[0][1] + '"'], new Set())[0], sub: '', at: 17.8, gap: 700 }],
     shortY: 'People in Kufa sent letter after letter: "Please come and lead us!"',
     shortF: 'From Kufa came a flood of letters, reportedly around 12,000, urging Hussain (AS) to come.',
     young: 'Far away in Kufa, a city in Iraq, people wrote letter after letter saying, “Please come and lead us!” Thousands of letters arrived in Mecca.',
     full: 'From Kufa came a flood of letters, reportedly around 12,000, urging Hussain (AS) to come and lead them. Kufa had been the capital of his father, Imam ʿAli (AS), and many there resented Umayyad rule. One letter, signed by Shabath ibn Ribʿi, Hajjar ibn Abjar, ʿAmr ibn al-Hajjaj and others, promised “an army mustered for you”; the same men would later lead troops against him at Karbala.',
     reflect: 'If you promise to help someone, what makes that promise real?',
     note: 'The Kaʿba is drawn as it looks today. Its covering in 60 AH may have looked different.',
-    shot: new Shot([[34, 9, 40], [-30, 10, -100], [-54, 6, -163], [-43.41, 1.95, -164.44]], [[-22, 6, -80], [-48, 5, -172], [-46, 1.6, -173], [-45.5, 1.5, -167.3]], 20),
-    enter(S) { armyShow(0); caravanLamps(.8); resetCaravan(); S.crowd.on = false; S.crowd.update(0, hMec); S.envoy.group.visible = false; S.letters.im.visible = true; S.letters.pile.visible = true; S.couriers.forEach(c => { c.group.visible = true; c._ps = undefined; });
+    shot: new Shot([[34, 9, 40], [-30, 10, -100], [-46.4, 3.4, -160.9], [-43.41, 1.95, -164.44]], [[-22, 6, -80], [-48, 5, -172], [-46.8, 1, -169.9], [-45.5, 1.5, -167.3]], 20),
+    enter(S) { armyShow(0); caravanLamps(.8); resetCaravan(); S.crowd.on = false; S.crowd.update(0, hMec); S.envoy.group.visible = false; S.letters.show(true); S.couriers.forEach(c => { c.group.visible = true; c._ps = undefined; });
       S.parch.group.visible = true; S.parch.set(0); S.reader.group.visible = true; S.reader.setLevel(0); caravan.horses[0].noor.group.visible = false; },
     update(t, dt, S, T) {
       caravanUpdate(S.path, S.path.getLength(), dt);
-      S.lettersDone = S.letters.update(t);
+      S.letters.update(t); S.lettersDone = lerp(.25, 1, smooth(.5, 14, t));
       const lift = smooth(13.2, 14.8, t), P = S.parch;
       P.group.position.set(P.at[0], P.y0 + lerp(1.05, 1.95, lift), P.at[1]); P.group.scale.setScalar(lerp(.5, 1, lift)); P.set(smooth(14.8, 17.6, t));
       S.reader.setLevel(smooth(12.6, 14.2, t));
@@ -2227,7 +3146,7 @@ const CH23_STEPS = [
     people: [['Muslim ibn ʿAqil', 'مسلم بن عقيل']],
     note: 'Muslim ibn ʿAqil belonged to the Prophet’s family, so he is shown as the light above his horse.',
     shot: new Shot([[-30, 4.5, -112], [-36, 5.5, -126], [-48, 9, -140]], [[-44, 2.4, -138], [-76, 3, -172], [-112, 6, -250]], 16),
-    enter(S) { armyShow(0); caravanLamps(.8); resetCaravan(); S.crowd.on = false; S.crowd.update(0, hMec); S.couriers.forEach(c => { c.group.visible = false; }); S.envoy.group.visible = true; S.envoy._ps = undefined; S.letters.update(99); S.letters.im.visible = false; S.letters.pile.visible = true; S.parch.group.visible = false; S.reader.group.visible = false; },
+    enter(S) { armyShow(0); caravanLamps(.8); resetCaravan(); S.crowd.on = false; S.crowd.update(0, hMec); S.couriers.forEach(c => { c.group.visible = false; }); S.envoy.group.visible = true; S.envoy._ps = undefined; S.letters.show(true, false); S.letters.update(99); S.parch.group.visible = false; S.reader.group.visible = false; },
     update(t, dt, S, T) {
       caravanUpdate(S.path, S.path.getLength(), dt);
       const sp = rideOn(S.envoy, S.envoyPath, accelS(T, 1.5, 7, 2.5), dt, hMec);
@@ -2246,7 +3165,7 @@ const CH23_STEPS = [
     reflect: 'Why is the caravan going the opposite way from everyone else?',
     lead: T => 20 + 1.35 * T, followPath: 'leavePath',
     shot: new Shot([[-12, 14, 52], [-6, 22, 32], [-20, 26, -60]], [[80, 2, -10], [-30, 2, -100], [-70, 3, -170]], 18),
-    enter(S) { armyShow(0); caravanLamps(0); resetCaravan(); S.crowd.on = true; S.envoy.group.visible = false; S.couriers.forEach(c => { c.group.visible = false; }); S.letters.im.visible = false; S.letters.pile.visible = false; S.parch.group.visible = false; S.reader.group.visible = false; },
+    enter(S) { armyShow(0); caravanLamps(0); resetCaravan(); S.crowd.on = true; S.envoy.group.visible = false; S.couriers.forEach(c => { c.group.visible = false; }); S.letters.show(false); S.parch.group.visible = false; S.reader.group.visible = false; },
     update(t, dt, S, T) { caravanUpdate(S.leavePath, this.lead(T), dt); S.crowd.update(T + 40, hMec); flickerFires(S.fires, dt, false); },
   },
   {
@@ -2337,7 +3256,7 @@ const EMBER_GLOW = new Particles(300, new THREE.Color(1.7, .55, .14), { additive
 const M_CHAR = new THREE.MeshStandardMaterial({ color: '#211a15', roughness: 1, side: THREE.DoubleSide });
 const vis = (o, on) => { if (o) (o.group || o).visible = on; };
 const subGroup = parent => { const g = new THREE.Group(); parent.add(g); return g; };
-function crowdClear(c) { if (c) c.meshes.forEach(l => l.forEach(im => { im.count = 0; })); }
+function crowdClear(c) { if (c) [...c.meshes, ...(c.far || [])].forEach(l => l.forEach(im => { im.count = 0; })); }
 const LOOKS2 = {
   syrians: [
     { robe: '#7a3b2e', skin: '#9a7458', head: 'turban', cover: '#e8e0cc', belt: '#c9a24a' },
@@ -2373,8 +3292,9 @@ function liningCrowd(parent, looks, path, s0, s1, gap, hf, skip = () => false) {
   return c;
 }
 // baked, instanced horsemen standing in ranks (same bakes as the massed vanguard at Sharaf)
-function standingCavalry(parent, spots, hf) {
+function standingCavalry(parent, spots, hf, near = false) {
   const g = subGroup(parent), geos = massGeos(TPL.horse);
+  if (near) return new CavalryLine(g, spots, hf);
   geos.forEach((poses, v) => {
     const mine = spots.filter(s => s[3] % geos.length === v);
     if (!mine.length) return;
@@ -2383,6 +3303,30 @@ function standingCavalry(parent, spots, hf) {
     im.castShadow = true; im.receiveShadow = true; g.add(im);
   });
   return g;
+}
+// a standing line of horsemen whose riders near the camera are the light version of the rider, the rest the simple
+// figure; re-sorted every frame while it is shown
+const CAV_LINES = [], CAV_NEAR2 = 70 * 70;
+class CavalryLine {
+  constructor(group, spots, hf) {
+    this.group = group; const far = massGeos(TPL.horse), near = massGeosNear(TPL.horse);
+    this.sets = [near, far].map(geos => geos.map((poses, v) => {
+      const n = spots.filter(s => s[3] % geos.length === v).length;
+      const im = new THREE.InstancedMesh(poses[4], MASS_MAT, Math.max(1, n)); im.count = 0; im.frustumCulled = false;
+      im.castShadow = true; im.receiveShadow = true; group.add(im); return im;
+    }));
+    this.spots = spots.map(([x, z, yaw, c]) => ({ x, z, v: c % far.length, m: M4(x, hf(x, z), z, 0, yaw, 0, 1) }));
+    CAV_LINES.push(this);
+  }
+  update() {
+    for (let o = this.group; o; o = o.parent) if (!o.visible) return;
+    const cam = this.group.worldToLocal(crowdCam.copy(camera.position)), counts = this.sets.map(l => l.map(() => 0));
+    for (const s of this.spots) {
+      const k = (s.x - cam.x) ** 2 + (s.z - cam.z) ** 2 < CAV_NEAR2 ? 0 : 1;
+      this.sets[k][s.v].setMatrixAt(counts[k][s.v]++, s.m);
+    }
+    this.sets.forEach((l, k) => l.forEach((im, v) => { im.count = counts[k][v]; im.instanceMatrix.needsUpdate = true; }));
+  }
 }
 // the family's camels travelling as captives, soldiers riding on both sides
 function processionUpdate(path, lead, dt, escorts = []) {
@@ -2501,22 +3445,159 @@ function buildDamascus(T) {
   return { group, h: hDam, path: procPath, procPath, ridePath, guards, gateLights };
 }
 
+// ─────────── Damascus, the night the orders went out: people gather before the palace, an official of the court brings
+// the sealed letter out to the waiting messenger, and he rides for Medina (Yazid is not shown) ───────────
+const OFFICIAL_LOOK = { robe: '#2a2440', skin: '#8a6446', head: 'turban', cover: '#f0ebe0', belt: '#c9a24a' };
+const ORDERS = { walk: 6.6, give: 15.2, hand: 17.6, ride: 20.6 };   // he comes out; raises the letter; it is in the messenger's hand; the ride
+let OFFICIAL_FR = null;
+function officialFrames() {
+  if (OFFICIAL_FR) return OFFICIAL_FR;
+  const A = MAN.api, { rb, SX, V, turn, aim } = A;
+  const legs = (p, amp) => { for (const [sd, off] of [['L', 0], ['R', Math.PI]]) { const ph = p / 6 * TAU + off, sw = Math.sin(ph); turn(rb['UpperLeg' + sd], -amp * sw); turn(rb['LowerLeg' + sd], .08 + amp * 1.3 * Math.max(0, Math.cos(ph))); } };
+  const armL = (p, amp) => { const sw = Math.sin(p / 6 * TAU); turn(rb.UpperArmL, .7 * amp * sw); turn(rb.LowerArmL, -.15 - .2 * Math.max(0, -sw)); };
+  // the right hand closed round the letter: each finger bent at its three joints about the knuckle line, the thumb
+  // laid round the far side of the roll
+  const rotW = (b, ax, a) => { const q = new THREE.Quaternion().setFromAxisAngle(ax, a).multiply(b.getWorldQuaternion(new THREE.Quaternion())); b.quaternion.copy(b.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(q)); b.updateMatrixWorld(true); };
+  const grip = () => {
+    const k = rb.Index1R.getWorldPosition(V()).sub(rb.Pinky1R.getWorldPosition(V())).normalize();
+    for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) [.9, 1.1, .7].forEach((a, i) => rotW(rb[f + (i + 1) + 'R'], k, a));
+    const tip = rb.Index2R.getWorldPosition(V()).lerp(rb.Middle2R.getWorldPosition(V()), .3);
+    for (const [b, c] of [['Thumb2R', 'Thumb3R'], ['Thumb3R', 'Thumb4R']]) aim(rb[b], rb[c], tip.clone().sub(rb[b].getWorldPosition(V())).normalize());
+  };
+  // carrying it: the arm down at his side, the elbow a little bent, swinging a little as he walks
+  const carryR = sw => A.reach('R', V(SX.R * .2, .96, .12 + sw), V(SX.R * .3, -.3, -1).normalize());
+  const P = {
+    walk: [0, 1, 2, 3, 4, 5].map(p => MAN.posed(() => { legs(p, .26); armL(p, .26); carryR(-.05 * Math.sin(p / 6 * TAU)); grip(); })),
+    stand: MAN.posed(() => { carryR(0); grip(); }),
+    up: MAN.posed(() => { turn(rb.Neck, -.25); A.reach('R', V(SX.R * .1, 1.78, .5), V(SX.R * .8, -.5, -.5).normalize()); grip(); }),
+    rest: MAN.posed(() => {}),
+  };
+  // each frame keeps the middle of the fist and the line through it, where the letter is held
+  const bk = (qa, qb = qa, u = 0) => {
+    const parts = MAN.bake(qa, qb, u), f = riderFist(rb, 'R'); f.at.y -= parts.lo;
+    return { g: manGeo(parts.filter(q => q.name !== 'robe_pray'), OFFICIAL_LOOK), hand: f.at, dir: f.dir };
+  };
+  OFFICIAL_FR = {
+    walk: P.walk.map(q => bk(q)), stand: bk(P.stand), up: [bk(P.stand, P.up, .5), bk(P.up)], down: [bk(P.up, P.rest, .5), bk(P.rest)],
+    walkE: [0, 1, 2, 3, 4, 5].map(p => ({ g: robedGeo(p, OFFICIAL_LOOK) })),
+  };
+  return OFFICIAL_FR;
+}
+function ordersScene(S) {
+  if (S.orders) return S.orders;
+  const g = new THREE.Group(); S.group.add(g);
+  const O = S.orders = { group: g };
+  // people gathered in a half-circle before the palace gate, the street to the city gate left clear, and the
+  // places the camera passes through kept free
+  const r = rng(61), crowd = new Crowd(subGroup(g), LOOKS2.syrians, 130);
+  const seg = (x, z, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], u = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz), 0, 1); return Math.hypot(x - a[0] - dx * u, z - a[1] - dz * u); };
+  const path = ORDER_KEYS.slice(1).map(k => [k[1][0], k[1][2]]);
+  const clear = (x, z) => Math.abs(x) < 4.4 || Math.hypot(x, z + 8) < 6 || path.slice(1).some((p, i) => seg(x, z, path[i], p) < 3.2);
+  for (let i = 0; i < 110; i++) {
+    let x, z, n = 0;
+    do { const a = Math.PI * (.06 + .88 * r()), d = 6 + Math.sqrt(r()) * 10; x = Math.cos(a) * d; z = -14 + Math.sin(a) * d * .9; } while (clear(x, z) && ++n < 60);
+    if (clear(x, z)) continue;
+    const hd = Math.atan2(-x, -16 - z) + (r() - .5) * .6;
+    crowd.add({ scale: .94 + r() * .12, at: () => [x, z, hd, 0] });
+  }
+  // and more coming up the street from the south, who stop where the square begins
+  for (let i = 0; i < 14; i++) {
+    const x = (i % 2 ? 1 : -1) * (4.8 + r() * 3), z0 = 40 + r() * 45, z1 = 14 + r() * 10, v = 1 + r() * .35, t0 = r() * 4;
+    crowd.add({ scale: .95 + r() * .1, at: t => { const z = Math.max(z1, z0 - Math.max(0, t - t0) * v); return [x, z, Math.PI, z > z1 + .05 ? v : 0]; } });
+  }
+  O.crowd = crowd;
+  // lanterns on poles round the square
+  const pole = new THREE.CylinderGeometry(.05, .06, 3.2, 6);
+  for (const [x, z] of [[-13, -11], [13, -11], [-21, 6], [21, 6], [-8, 19], [8, 19]]) {
+    const p = new THREE.Mesh(pole, M.darkWood); p.position.set(x, hDam(x, z) + 1.6, z); p.castShadow = true; g.add(p);
+    const l = makeLantern(M.window, 1.15); l.position.set(x, hDam(x, z) + 3.3, z); g.add(l);
+  }
+  // the official, and the letter: a roll of parchment, tied and sealed
+  O.man = new THREE.Mesh(officialFrames().stand.g, VC_MAT); O.man.castShadow = O.man.receiveShadow = true; O.man.rotation.order = 'YXZ'; g.add(O.man);
+  O.letter = new THREE.Mesh(mergeGeometries(scrollParts(rng(9), .3, .024, 0, 0, 0)), VC_MAT); O.letter.castShadow = true; O.letter.matrixAutoUpdate = false; g.add(O.letter);
+  O.from = [0, -17.5]; O.to = [-1.05, -7.6]; O.back = [-1.6, -10.4];
+  return O;
+}
+const OR_P = new THREE.Vector3(), OR_Q = new THREE.Quaternion(), OR_Q2 = new THREE.Quaternion(), OR_X = new THREE.Vector3(1, 0, 0), OR_D = new THREE.Vector3(), OR_S = new THREE.Vector3(1, 1, 1), OR_V = new THREE.Vector3();
+// where the official is at time t, which frame, and the letter (in his hand, passing up, or in the messenger's fist)
+function ordersUpdate(S, t) {
+  const O = S.orders, F = officialFrames(), m = O.man, T = ORDERS;
+  const head = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]);
+  const dWalk = Math.hypot(O.to[0] - O.from[0], O.to[1] - O.from[1]), tArrive = T.walk + dWalk / 1.2;
+  let x, z, yaw, fr, hasLetter = true;
+  if (t < T.walk) { [x, z] = O.from; yaw = head(O.from, O.to); fr = F.stand; }
+  else if (t < tArrive) {
+    const u = (t - T.walk) / (tArrive - T.walk); x = lerp(O.from[0], O.to[0], u); z = lerp(O.from[1], O.to[1], u); yaw = head(O.from, O.to);
+    fr = F.walk[Math.floor(((u * dWalk / 1.15) % 1) * 6) % 6];
+  } else if (t < T.give) { [x, z] = O.to; yaw = angTo(head(O.from, O.to), Math.PI / 2, smooth(tArrive, tArrive + .6, t)); fr = F.stand; }
+  else if (t < T.hand + 1) {
+    [x, z] = O.to; yaw = Math.PI / 2;
+    fr = t < T.give + .6 ? F.up[0] : t < T.hand ? F.up[1] : t < T.hand + .5 ? F.down[0] : F.down[1];
+    hasLetter = t < T.hand - .6;
+  } else {
+    // he steps back towards the palace, then turns to watch the messenger go
+    const t0 = T.hand + 1, dB = Math.hypot(O.back[0] - O.to[0], O.back[1] - O.to[1]), t1 = t0 + dB / 1.1, u = clamp((t - t0) / (t1 - t0), 0, 1);
+    x = lerp(O.to[0], O.back[0], u); z = lerp(O.to[1], O.back[1], u); hasLetter = false;
+    yaw = t < t1 ? angTo(Math.PI / 2, head(O.to, O.back), smooth(t0, t0 + .4, t)) : angTo(head(O.to, O.back), 0, smooth(t1, t1 + .8, t));
+    fr = t < t1 ? F.walkE[Math.floor(((u * dB / 1.15) % 1) * 6) % 6] : F.down[1];
+  }
+  m.geometry = fr.g; m.position.set(x, hDam(x, z), z); m.rotation.y = yaw;
+  // the letter, through his fist, then passing into the messenger's
+  const h = fr.hand || F.stand.hand, d = fr.dir || F.stand.dir, c = Math.cos(yaw), sn = Math.sin(yaw);
+  const pos = OR_P.set(x + h.x * c + h.z * sn, hDam(x, z) + h.y, z - h.x * sn + h.z * c);
+  const q = OR_Q.setFromUnitVectors(OR_X, OR_D.set(d.x * c + d.z * sn, d.y, -d.x * sn + d.z * c));
+  const live = S.messenger.live;
+  if (t >= T.hand - .6 && live) {
+    const k = smooth(T.hand - .6, T.hand, t), f = riderFist(live.b, 'R');
+    pos.lerp(f.at, k); q.slerp(OR_Q2.setFromUnitVectors(OR_X, f.dir), k);
+  }
+  O.letter.matrix.compose(pos, q, OR_S); O.letter.matrixWorldNeedsUpdate = true;
+  O.letter.visible = hasLetter || !!live;
+}
+// the camera: down over the city to the square, in to the gate as the letter is handed over, then after the rider
+const ORDER_KEYS = [
+  [0, [60, 58, 150], [0, 12, -48]], [7.5, [26, 16, 34], [0, 3, -10]], [12, [-9, 3.2, 3], [-.5, 1.8, -11]],
+  [16.8, [-4.6, 2.1, -4.2], [-.6, 1.85, -8]], [20.6, [2.2, 2, 6], [0, 1.6, -8]],
+];
+const ORDER_PC = new THREE.CatmullRomCurve3(ORDER_KEYS.map(k => new THREE.Vector3(...k[1])));
+const ORDER_LC = new THREE.CatmullRomCurve3(ORDER_KEYS.map(k => new THREE.Vector3(...k[2])));
+function ordersShot(t) {
+  const n = ORDER_KEYS.length - 1, tc = clamp(t, 0, ORDER_KEYS[n][0]);
+  let i = 0; while (i < n - 1 && tc > ORDER_KEYS[i + 1][0]) i++;
+  const u = (i + ease(clamp((tc - ORDER_KEYS[i][0]) / (ORDER_KEYS[i + 1][0] - ORDER_KEYS[i][0]), 0, 1))) / n;
+  ORDER_PC.getPoint(u, camera.position); ORDER_LC.getPoint(u, focus);
+  camera.position.y += hDam(camera.position.x, camera.position.z); focus.y += hDam(focus.x, focus.z);
+  if (t > ORDERS.ride) {
+    // he sets off towards the camera, which waits in the street; once he is past it follows him down the street and
+    // out of the gate, rising as he takes the road south
+    const p = SCENES.damascus.messenger.group.position, k = smooth(3, 16, p.z), rise = smooth(96, 160, p.z);
+    focus.lerp(OR_V.set(p.x, p.y + 1.6, p.z), smooth(ORDERS.ride, ORDERS.ride + 1.2, t));
+    const cx = p.x - 2.8 - 2 * rise, cz = p.z - 8.5 - 10 * rise, cy = hDam(cx, cz) + 2.6 + 11 * rise;
+    camera.position.lerp(OR_V.set(cx, cy, cz), k);
+    focus.lerp(OR_V.set(p.x, p.y + 1.6 - rise, p.z + 8 + 14 * rise), k);
+  }
+  const hx = REDUCE ? 0 : Math.sin(TIME * .6) * .05, hy = REDUCE ? 0 : Math.sin(TIME * .83 + 1) * .03;
+  camera.position.x += hx; camera.position.y += hy;
+  camera.lookAt(focus);
+}
+
 // ─────────── the prayer: rows of men following the Imam, shown as a light ───────────
-// Joint positions for standing (Q), bowing (R), prostrating (S) and sitting (J); frames in between are blended.
+// Joint positions for standing (Q), bowing (R), prostrating (S) and sitting (J); frames in between are blended. After
+// the second prostration they sit for a moment (jalsat al-istiraha) before rising for the next rak'a.
 const PR_POSES = {
   Q: { hip: [0, .95, 0], neck: [0, 1.42, 0], head: [0, 1.56, .01], sh: [.2, 1.38, 0], el: [.24, 1.1, .02], ha: [.22, .84, .04], kn: [.09, .5, 0], an: [.09, .07, 0] },
   R: { hip: [0, .95, -.08], neck: [0, 1.04, .39], head: [0, 1.02, .53], sh: [.2, 1.0, .35], el: [.18, .77, .2], ha: [.12, .54, .06], kn: [.09, .5, -.02], an: [.09, .07, -.04] },
   S: { hip: [0, .48, -.12], neck: [0, .3, .36], head: [0, .16, .46], sh: [.2, .33, .32], el: [.3, .12, .34], ha: [.2, .03, .55], kn: [.12, .08, .1], an: [.1, .08, -.36] },
-  J: { hip: [0, .3, -.2], neck: [0, .77, -.16], head: [0, .91, -.15], sh: [.2, .73, -.16], el: [.22, .5, -.04], ha: [.13, .33, .14], kn: [.12, .08, .22], an: [.1, .07, -.25] },
+  J: { hip: [0, .3, -.2], neck: [0, .77, -.16], head: [0, .91, -.15], sh: [.2, .73, -.16], el: [.23, .5, -.04], ha: [.2, .33, .16], kn: [.12, .08, .22], an: [.1, .07, -.25] },
 };
-const PR_KEYS = [[0, 'Q'], [4, 'Q'], [5, 'R'], [7, 'R'], [8, 'Q'], [9, 'Q'], [10.4, 'S'], [12.2, 'S'], [13, 'J'], [14.2, 'J'], [15, 'S'], [16.8, 'S'], [18.2, 'Q'], [21.5, 'Q']];
+const PR_KEYS = [[0, 'Q'], [4, 'Q'], [5, 'R'], [7, 'R'], [8, 'Q'], [9, 'Q'], [10.4, 'S'], [12.2, 'S'], [13, 'J'], [14.2, 'J'], [15, 'S'], [16.8, 'S'], [17.6, 'J'], [18.6, 'J'], [19.9, 'Q'], [23.2, 'Q']];
 let PR = null;
 function prFrames() {
   if (PR) return PR;
   const list = [], idx = {}, trans = {};
   for (const k of 'QRSJ') { idx[k] = list.length; list.push(PR_POSES[k]); }
   const mix = (A, B, u) => Object.fromEntries(Object.keys(A).map(k => [k, A[k].map((v, i) => lerp(v, B[k][i], u))]));
-  for (const [a, b] of [['Q', 'R'], ['Q', 'S'], ['S', 'J']]) {
+  for (const [a, b] of [['Q', 'R'], ['Q', 'S'], ['S', 'J'], ['J', 'Q']]) {
     const seq = [idx[a]];
     for (let i = 1; i <= 3; i++) { seq.push(list.length); list.push(mix(PR_POSES[a], PR_POSES[b], i / 4)); }
     seq.push(idx[b]);
@@ -2574,19 +3655,20 @@ function prayerGeo(J, look) {
   return g;
 }
 class PrayerRows {
-  // people: [{ x, z, hd, look, delay }]
+  // people: [{ x, z, hd, look, delay, y (optional: the top of the mat they pray on) }]
   constructor(parent, looks, people) {
     this.group = subGroup(parent);
     const P = prFrames(), cap = looks.map((_, v) => people.filter(p => p.look === v).length);
-    this.meshes = looks.map((look, v) => P.list.map(J => {
-      const im = new THREE.InstancedMesh(prayerGeo(J, look), VC_FLAT, Math.max(1, cap[v]));
+    this.meshes = looks.map((look, v) => P.list.map((J, f) => {
+      const geo = MAN ? manGeo(MAN.pray[f].filter(q => q.name !== 'robe' && q.name !== 'turban_tail'), look) : prayerGeo(J, look);
+      const im = new THREE.InstancedMesh(geo, MAN ? VC_MAT : VC_FLAT, Math.max(1, cap[v]));
       im.count = 0; im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true; this.group.add(im); return im;
     }));
     this.people = people;
   }
   update(t, hf) {
     const counts = this.meshes.map(l => l.map(() => 0));
-    for (const p of this.people) { const f = prFrameAt(t - p.delay); place(this.meshes[p.look][f], counts[p.look][f]++, p.x, hf(p.x, p.z), p.z, p.hd, 1); }
+    for (const p of this.people) { const f = prFrameAt(t - p.delay); place(this.meshes[p.look][f], counts[p.look][f]++, p.x, p.y ?? hf(p.x, p.z), p.z, p.hd, 1); }
     this.meshes.forEach((l, v) => l.forEach((im, f) => { im.count = counts[v][f]; im.instanceMatrix.needsUpdate = true; }));
   }
 }
@@ -2595,7 +3677,8 @@ function buildPrayer(S) {
   const looks = [LOOKS.kufans[0], LOOKS.kufans[2], LOOKS2.soldiers[0], LOOKS2.soldiers[1]];
   for (let row = 0; row < 7; row++) for (let k = 0; k < 12; k++) {
     const x = x0 - 1.6 - row * 1.35 + (r() - .5) * .12, z = zc + (k - 5.5) * .95 + (r() - .5) * .1;
-    people.push({ x, z, hd: Math.PI / 2 + (r() - .5) * .05, look: row < 2 ? r() < .5 ? 0 : 1 : r() < .5 ? 2 : 3, delay: .15 + row * .07 + r() * .12 });
+    const mx = x0 - 1.6 - row * 1.35 + .25;
+    people.push({ x, z, y: hSha(mx, zc) + .035, hd: Math.PI / 2 + (r() - .5) * .05, look: row < 2 ? r() < .5 ? 0 : 1 : r() < .5 ? 2 : 3, delay: .15 + row * .07 + r() * .12 });
   }
   const rows = new PrayerRows(g, looks, people);
   const matC = [M.rugA, M.rugB, M.rugC];
@@ -2682,7 +3765,7 @@ function ensureRiverLine(S) {
   if (S.riverLine) return;
   const r = rng(71), spots = [];
   for (let x = -330; x <= 330; x += 5.2) spots.push([x + (r() - .5) * 1.5, zRiver(x) + 13 + (r() - .5) * 2, (r() - .5) * .3, Math.floor(r() * 4)]);
-  S.riverLine = standingCavalry(S.group, spots, hKar);
+  S.riverLine = standingCavalry(S.group, spots, hKar, true);
 }
 // 72 floating lights in the camp, one for each of those who fell on Ashura
 const ROLL = [
@@ -2751,11 +3834,19 @@ function ensureLanterns(S) {
   // when each lantern goes out: the named at their moment, the others spread between them
   const r = rng(72), comp = [], fam = [];
   ROLL.forEach(e => { if (e.imam) return; for (let j = 0; j < (e.n || 1); j++) (e.t < 23 ? comp : fam).push(e.t + j * .35); });
+  const namedComp = comp.slice();
   while (comp.length < 54) comp.push(3.6 + r() * 18);
   while (fam.length < 17) fam.push(24.6 + r() * 11.4);
-  const times = [...comp, ...fam].sort((a, b) => a - b), order = Array.from({ length: 71 }, (_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-  S.outT = new Array(72); order.forEach((li, k) => { S.outT[li] = times[k]; }); S.outT[71] = ROLL[ROLL.length - 1].t;
+  // where each one stands: the family nearest the Imam's light (the middle of the inner row), the named among them
+  // nearest of all (his infant son, who fell in his arms, then ʿAli al-Akbar, al-ʿAbbas, al-Qasim, ʿAwn and Muhammad,
+  // ʿAbdullah ibn Muslim); then the named companions, so their names are seen; the other companions fill the arc
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const famT = name => ROLL.filter(e => e.en.startsWith(name)).flatMap(e => Array.from({ length: e.n || 1 }, (_, j) => e.t + j * .35));
+  const firstFam = ['ʿAbdullah, the infant', 'ʿAli al-Akbar', 'al-ʿAbbas', 'al-Qasim', 'ʿAwn and Muhammad', 'ʿAbdullah ibn Muslim'].flatMap(famT);
+  const rest = (all, out) => all.filter(t => !out.includes(t));
+  const byRank = [...firstFam, ...shuffle(rest(fam, firstFam)), ...shuffle(namedComp.slice()), ...shuffle(rest(comp, namedComp))];
+  const near = Array.from({ length: 71 }, (_, i) => i).sort((a, b) => Math.hypot(spots[a][0], spots[a][1] - 3) - Math.hypot(spots[b][0], spots[b][1] - 3));
+  S.outT = new Array(72); near.forEach((li, k) => { S.outT[li] = byRank[k]; }); S.outT[71] = ROLL[ROLL.length - 1].t;
   S.hurrIdx = S.outT.indexOf(ROLL[0].t);
   // the family's lights are a little larger
   S.lanterns.base.forEach((b, i) => { if (i < 71 && S.outT[i] >= 23) b[3] = .85; S.lanterns.halo.size[i] = .8 * b[3]; S.lanterns.aura.size[i] = 2.4 * b[3]; });
@@ -2787,11 +3878,87 @@ function ensureGraves(S) {
   for (const [x, z, s] of [[0, -40, 1.4], [abbas[0], abbas[1], 1.2]]) { const n = new Noor(s, 14); n.group.position.set(x, hKar(x, z) + 1.9, z); g.add(n.group); lamps.push(n); }
   S.graveNoors = lamps;
   S.graves = g;
-  const c = new Crowd(subGroup(S.group), LOOKS2.elders, 2);
-  c.add({ look: 0, at: () => [-2.3, -38.6, Math.atan2(2.3, -1.4), 0] });
-  c.add({ look: 1, at: () => [-3.6, -36.8, Math.atan2(3.6, -3.2), 0] });
-  c.group = c.meshes[0][0].parent;
-  S.pilgrims = c;
+  S.pilgrims = new ArbaeenPair(subGroup(S.group));
+}
+// the first pilgrims: ʿAtiyya leads Jabir, elderly and blind, by the hand to the grave; Jabir kneels and lays his hand on
+// it, and ʿAtiyya stands at his side with a hand on his shoulder. A veil of light covers each one's face.
+const JABIR_LOOK = { ...LOOKS2.elders[0], hair: '#d9d4ca', veil: true }, ATIYYA_LOOK = { ...LOOKS2.elders[1], veil: true };
+class ArbaeenPair {
+  constructor(group) {
+    this.group = group;
+    const A = MAN.api, { rb, SX, V, turn, aim } = A;
+    const HOLD_J = V(.3, .98, .3), SIDE = [.6, .25];                 // ʿAtiyya walks at Jabir's left, a little ahead
+    const HOLD_A = V(HOLD_J.x - SIDE[0], HOLD_J.y, HOLD_J.z - SIDE[1]);
+    const walkPose = (p, held, target, stoop, amp) => () => {
+      if (stoop) { turn(rb.Abdomen, stoop); turn(rb.Chest, stoop * .5); turn(rb.Neck, -stoop * 1.3); }
+      for (const [sd, off] of [['L', 0], ['R', Math.PI]]) {
+        const ph = p / 6 * TAU + off, sw = Math.sin(ph);
+        turn(rb['UpperLeg' + sd], -amp * sw);
+        turn(rb['LowerLeg' + sd], .08 + amp * 1.3 * Math.max(0, Math.cos(ph)));
+        if (sd !== held) { turn(rb['UpperArm' + sd], .7 * amp * sw); turn(rb['LowerArm' + sd], -.15 - .2 * Math.max(0, -sw)); }
+      }
+      A.reach(held, target, V(SX[held] * .6, -1, -.4).normalize());
+    };
+    // Jabir kneels, leaning forward, his right hand on the grave and his left on his thigh
+    const kneelPose = () => {
+      turn(rb.Hips, .1);
+      for (const sd of ['L', 'R']) {
+        aim(rb['UpperLeg' + sd], rb['LowerLeg' + sd], V(SX[sd] * .08, -.42, 1).normalize());
+        aim(rb['LowerLeg' + sd], rb['Foot' + sd], V(0, -.03, -1).normalize());
+        aim(rb['Foot' + sd], rb['Toe' + sd], V(0, -.25, -1).normalize());
+      }
+      const lean = V(0, Math.cos(1), Math.sin(1));
+      for (const [b, c] of [['Abdomen', 'Torso'], ['Torso', 'Chest'], ['Chest', 'Neck']]) aim(rb[b], rb[c], lean);
+      aim(rb.Neck, rb.Head, V(0, .8, .6).normalize());
+      const kg = A.kneeGround(), kz = Math.max(rb.LowerLegL.getWorldPosition(V()).z, rb.LowerLegR.getWorldPosition(V()).z);
+      A.reach('R', V(-.08, kg + .28, kz + .4), V(-.7, -.6, -.2).normalize());
+      A.reach('L', V(.17, kg + .4, kz - .08), V(.8, -.2, -.5).normalize());
+    };
+    const parts = (q, robe) => q.filter(x => x.name !== (robe === 'pray' ? 'robe' : 'robe_pray'));
+    const geo = (q, look, robe) => {
+      const g = manGeo(parts(q, robe), look), vg = q.find(x => x.mat === 'FaceVeil').g;
+      vg.setAttribute('color', new THREE.BufferAttribute(MAN.veilAlpha, 4)); g.userData.veil = vg;
+      return g;
+    };
+    // Jabir: a slow, stooped walk with his left hand held, then down onto his knees
+    this.jWalk = [0, 1, 2, 3, 4, 5].map(p => geo(MAN.bake(MAN.posed(walkPose(p, 'L', HOLD_J, .14, .24))), JABIR_LOOK));
+    const jStand = MAN.posed(walkPose(0, 'L', HOLD_J, .14, 0)), jKneel = MAN.posed(kneelPose);
+    const kz = Math.max(rb.LowerLegL.getWorldPosition(V()).z, rb.LowerLegR.getWorldPosition(V()).z);
+    const sh = rb.UpperArmL.getWorldPosition(V()); sh.y -= A.kneeGround();          // his left shoulder, kneeling
+    this.jDown = [.25, .5, .75, 1].map(u => geo(MAN.bake(jStand, jKneel, u, u), JABIR_LOOK, 'pray'));
+    // ʿAtiyya: walking with Jabir's hand in his right, then standing with that hand on Jabir's shoulder
+    const END = [.55, -.15];
+    const aWalk = p => walkPose(p, 'R', HOLD_A, 0, .26);
+    this.aWalk = [0, 1, 2, 3, 4, 5].map(p => geo(MAN.bake(MAN.posed(aWalk(p))), ATIYYA_LOOK));
+    const aStand = MAN.posed(walkPose(0, 'R', HOLD_A, 0, 0));
+    const aEnd = MAN.posed(() => { turn(rb.Neck, .3); A.reach('R', V(sh.x - END[0], sh.y + .05, sh.z - END[1]), V(-.6, -1, -.3).normalize()); });
+    this.aDown = [.33, .67, 1].map(u => geo(MAN.bake(aStand, aEnd, u), ATIYYA_LOOK));
+    this.j = new THREE.Mesh(this.jWalk[0], VC_MAT); this.a = new THREE.Mesh(this.aWalk[0], VC_MAT);
+    for (const m of [this.j, this.a]) {
+      m.castShadow = true; m.receiveShadow = true; m.rotation.order = 'YXZ'; group.add(m);
+      m.add(m.veil = new THREE.Mesh(m.geometry.userData.veil, FACE_VEIL_MAT));       // their faces are not shown
+    }
+    // the way: along the grave's length to kneel just short of its western end (the mound runs x -2.24 .. 2.24 at z -40)
+    this.from = -8.2; this.to = -2.24 - .1 - kz; this.z = -40; this.side = SIDE; this.end = END;
+    this.walkT = 7; this.downT = 1.6;
+    this.lab = [new THREE.Vector3(), new THREE.Vector3()];
+  }
+  update(T) {
+    const L = this.to - this.from, W = this.walkT, ta = .6, td = .8, vmax = L / (W - ta / 2 - td / 2);
+    const s = T <= 0 ? 0 : T < ta ? .5 * vmax * T * T / ta : T < W - td ? .5 * vmax * ta + vmax * (T - ta) : T < W ? L - .5 * vmax * (W - T) ** 2 / td : L;
+    const u = clamp((T - W) / this.downT, 0, 1);
+    const jx = this.from + s, jz = this.z, hd = Math.PI / 2;
+    this.j.geometry = u <= 0 ? this.jWalk[Math.floor(((s / .95) % 1) * 6) % 6] : this.jDown[Math.min(3, Math.floor(u * 4))];
+    this.a.geometry = u <= 0 ? this.aWalk[Math.floor(((s / 1.05 + .5) % 1) * 6) % 6] : this.aDown[Math.min(2, Math.floor(u * 3))];
+    // ʿAtiyya's place in Jabir's frame (facing +x: his left is -z), easing from beside him to the end position
+    const ox = lerp(this.side[0], this.end[0], u), oz = lerp(this.side[1], this.end[1], u);
+    const ax = jx + oz, az = jz - ox;
+    this.j.position.set(jx, hKar(jx, jz), jz); this.j.rotation.y = hd;
+    this.a.position.set(ax, hKar(ax, az), az); this.a.rotation.y = hd;
+    this.j.veil.geometry = this.j.geometry.userData.veil; this.a.veil.geometry = this.a.geometry.userData.veil;
+    this.lab[0].set(jx, this.j.position.y + lerp(1.75, 1.15, u), jz);
+    this.lab[1].set(ax, this.a.position.y + 1.75, az);
+  }
 }
 
 // ─────────── Kufa: the procession route through the city ───────────
@@ -2917,7 +4084,7 @@ function ensureHall(S) {
 // ─────────── the steps ───────────
 const CH1_STEPS = [
   {
-    scene: 'damascus', env: 'night', dur: 18, mapStop: 0, mapCity: 'Damascus', km: null, mcKm: 'Capital of the Umayyad rulers', chN: 1,
+    scene: 'damascus', env: 'night', dur: 38, mapStop: 0, mapCity: 'Damascus', km: null, mcKm: 'Capital of the Umayyad rulers', chN: 1,
     ch: 'Chapter 1 · The Refusal', title: 'Orders from Damascus', place: 'Damascus', ar: 'دمشق', date: 'Rajab 60 AH', stat: 'More than 1,000 km to Medina',
     shortY: 'The ruler Muʿawiya died and his son Yazid took power. Yazid sent orders to Medina: make Hussain obey me.',
     shortF: 'On Muʿawiya’s death Yazid seized the caliphate and ordered Medina’s governor to take Hussain’s pledge at once.',
@@ -2926,28 +4093,20 @@ const CH1_STEPS = [
     people: [['Yazid ibn Muʿawiya', 'يزيد بن معاوية'], ['al-Walid ibn ʿUtba', 'الوليد بن عتبة', 'full']],
     reflect: 'What would you do if someone powerful demanded that you support something wrong?',
     note: 'Yazid is not shown. The green-domed palace of the Umayyads, known as al-Khadra, stands for his court.',
-    ride: T => accelS(T, 2, 8),
-    shot: {
-      dur: 18,
-      apply(t) {
-        // waits in the street inside the gate, then follows him out through the gate opening
-        const p = SCENES.damascus.messenger.group.position, a = ease(clamp(t / 7, 0, 1)), b = smooth(58, 90, p.z);
-        const cz = lerp(76, p.z - 13, b), cx = p.x + lerp(6, 3.2, b) + 4.5 * smooth(100, 125, cz);
-        camera.position.x = lerp(60, cx, a); camera.position.z = lerp(150, cz, a);
-        camera.position.y = hDam(camera.position.x, camera.position.z) + lerp(58, 3.3, a);
-        focus.set(lerp(0, p.x, a), lerp(12, p.y + 1.8, a), lerp(-48, p.z + 6 * b, a));
-        camera.lookAt(focus);
-      },
-    },
+    // he waits at the palace gate until the letter is in his hand (see ORDERS), then rides for Medina
+    ride: T => accelS(T, ORDERS.ride, 8),
+    shot: { dur: 38, apply: t => ordersShot(t) },
     enter(S) {
       armyShow(0); caravanShow(false); vis(S.lining, false); vis(S.hall, false);
       if (!S.messenger) { S.messenger = new HorseUnit(TPL.horse, 'black', 'civil', 2); S.group.add(S.messenger.group); }
       S.messenger.group.visible = true; S.messenger._ps = undefined;
+      ordersScene(S); vis(S.orders, true);
     },
     update(t, dt, S, T) {
       caravanShow(false);
       const sp = rideOn(S.messenger, S.ridePath, this.ride(T), dt, hDam);
       S.messenger.setSpeed(sp); S.messenger.update(dt);
+      ordersUpdate(S, T); S.orders.crowd.update(T, hDam);
       if (sp > 3 && dt > 0 && Math.random() < dt * 8) { const p = S.messenger.group.position; DUST.emit(p.x + (Math.random() - .5), p.y + .3, p.z - 1, (Math.random() - .5), .8, -1.5, 2.5, 1.5, 6, .35); }
     },
   },
@@ -3224,7 +4383,7 @@ const CH67_STEPS = [
     lead: T => 300 + 1.3 * T, followPath: 'procPath',
     shot: new Shot([[24, 5, 176], [17, 7, 158], [11, 13, 146]], [[0, 5, 70], [0, 6, 50], [0, 11, -30]], 20),
     enter(S) {
-      armyShow(0); caravanLamps(0); resetCaravan(); captiveOrder(true); vis(S.messenger, false); vis(S.hall, false);
+      armyShow(0); caravanLamps(0); resetCaravan(); captiveOrder(true); vis(S.messenger, false); vis(S.orders, false); vis(S.hall, false);
       damascusProcession(S); vis(S.lining, true);
       S.escorts = escortsReady(12);
     },
@@ -3242,7 +4401,7 @@ const CH67_STEPS = [
     note: 'Excerpts from the sermon as preserved in the sources; translations vary. Yazid is not shown. Imam Zayn al-ʿAbidin stands at the front of the captives, with Zaynab just behind him; her light grows as she speaks.',
     indoor: true,
     shot: new Shot([[0, 302.8, 43], [2.8, 302.6, 36], [4.4, 302.5, 31]], [[0, 302.6, 4], [.4, 302.1, 12], [1, 301.9, 16]], 37),
-    enter(S) { armyShow(0); caravanShow(false); vis(S.messenger, false); vis(S.lining, false); ensureHall(S); vis(S.hall, true); },
+    enter(S) { armyShow(0); caravanShow(false); vis(S.messenger, false); vis(S.orders, false); vis(S.lining, false); ensureHall(S); vis(S.hall, true); },
     update(t, dt, S, T) {
       caravanShow(false);
       const k0 = SERMON_K; sermonAt(SERMON_SHAM, T); if (SERMON_K !== k0 && SERMON_K >= 0) S.hallRing.t = 0;
@@ -3263,13 +4422,13 @@ const CH67_STEPS = [
     reflect: 'Why do you think millions still walk to Karbala today?',
     note: 'Historians differ on whether the family reached Karbala on this first Arbaeen or a year later. The two floating lights mark the graves of Imam Hussain (AS) and, by the river, al-ʿAbbas.',
     lead: T => 205 + 1.6 * T,
-    shot: new Shot([[-7, 2.2, -33], [-10, 3.5, -46], [-12, 6, -58]], [[-1, 1.3, -39.5], [4, 1.5, -30], [24, 2, 6]], 20),
+    shot: new Shot([[-10.5, 1.9, -35.5], [-8.3, 1.9, -35.2], [-5.6, 1.6, -36.6], [-10, 3.5, -46], [-12, 6, -58]], [[-5.5, 1.1, -40], [-3.6, 1, -40], [-2.4, .7, -40], [4, 1.5, -30], [24, 2, 6]], 20),
     enter(S) {
       karbalaReset(S); armyShow(0); caravanLamps(.5); resetCaravan(); captiveOrder(true);
       S.enemy.visible = false; S.camp.visible = false; S.alam.visible = false; campLamps(S, 0);
-      ensureGraves(S); vis(S.graves, true); vis(S.pilgrims, true); S.pilgrims.update(0, hKar);
+      ensureGraves(S); vis(S.graves, true); vis(S.pilgrims, true); S.pilgrims.update(0);
     },
-    update(t, dt, S, T) { processionUpdate(S.path, this.lead(T), dt); },
+    update(t, dt, S, T) { processionUpdate(S.path, this.lead(T), dt); S.pilgrims.update(T); },
   },
 ];
 
@@ -3382,7 +4541,7 @@ const STEPS = [
   },
   ...CH5_STEPS,
   {
-    scene: 'karbala', env: 'lastnight', envFrom: 'dusk', envT: 4.5, dur: 21, mapStop: 13, km: 1894,
+    scene: 'karbala', env: 'lastnight', dur: 21, mapStop: 13, km: 1894,
     ch: 'Chapter 5 · Karbala', title: 'The last night', place: 'Karbala', ar: 'ليلة عاشوراء', date: 'Eve of 10 Muharram 61 AH',
     stat: t => t > 15.5 ? '72 companions stayed' : 'Night before Ashura',
     young: 'On the last night, Imam Hussain told his companions: “They only want me. You are free to go. Leave in the dark and no one will see you.” The lamps were put out. When they were lit again, not one person had left.',
@@ -3427,7 +4586,7 @@ const SHORT = {
   'The last night': ['On the last night the lamps were put out so anyone could leave. No one left.', 'On the eve of Ashura, Hussain (AS) released his companions and had the lamps put out. None of them left.'],
 };
 const CDUR = {
-  'Orders from Damascus': 15, 'Leaving by night': 14, 'The road to Mecca': 13, 'Letters from Kufa': 19, 'An envoy to Kufa': 11, 'Leaving Mecca': 13,
+  'Orders from Damascus': 26, 'Leaving by night': 14, 'The road to Mecca': 13, 'Letters from Kufa': 19, 'An envoy to Kufa': 11, 'Leaving Mecca': 13,
   'The poet al-Farazdaq': 15, 'Meanwhile, in Kufa': 24, 'The news arrives': 16.5, 'Free to leave': 13, 'A thousand horsemen': 16, 'Water for the thirsty': 12,
   'Praying together': 17, 'Escorted north': 13, 'The land of Karbala': 17, 'The river is closed': 13, 'The last night': 18, 'Hurr’s choice': 20,
   'The roll of honour': 43, 'The horse comes home': 17, 'The night of the strangers': 13, 'Captives in Kufa': 14, 'Zaynab speaks in Kufa': 29,
@@ -3435,7 +4594,7 @@ const CDUR = {
 };
 // per-scene sound, on top of the defaults from the time of day, the place, the caravan and the horsemen
 const SFX = {
-  'Orders from Damascus': (t, S) => ({ crowd: 0, gallop: S.messenger && S.messenger.speed > 3 ? .3 : 0 }),
+  'Orders from Damascus': (t, S) => ({ crowd: t < ORDERS.ride + 4 ? .2 : 0, gallop: S.messenger && S.messenger.speed > 3 ? .3 : 0 }),
   'Letters from Kufa': t => ({ crowd: .22, fire: .35, hoof: t < 13 ? 2.2 : 0 }),
   'An envoy to Kufa': (t, S) => ({ crowd: .1, fire: .25, gallop: S.envoy.speed > 3 ? .25 : 0, hoof: S.envoy.speed > .3 && S.envoy.speed <= 3 ? 2 : 0 }),
   'Leaving Mecca': () => ({ crowd: .7 }),
@@ -3487,8 +4646,8 @@ const LABELS = {
   'Letters from Kufa': [{ text: 'Imam Hussain', ar: 'الإمام الحسين', at: S => S.reader && S.reader.bob, from: 13 }],
   'Zaynab in Yazid’s court': [{ text: 'Imam Zayn al-ʿAbidin', ar: 'الإمام زين العابدين', at: S => S.hallZ.zb.bob, dy: .95 }, { text: 'Sayyida Zaynab', ar: 'السيدة زينب', at: S => S.hallZ.zn.bob, dy: .45 }],
   'The fortieth day': [
-    { text: 'Jabir ibn ʿAbdullah al-Ansari, the first pilgrim', ar: 'جابر بن عبد الله الأنصاري', at: () => labelV.set(-2.3, hKar(-2.3, -38.6) + 1.75, -38.6), dy: .8, to: 11 },
-    { text: 'ʿAtiyya al-ʿAwfi, who guided him', ar: 'عطية العوفي', at: () => labelV.set(-3.6, hKar(-3.6, -36.8) + 1.75, -36.8), dy: .2, to: 11 },
+    { text: 'Jabir ibn ʿAbdullah al-Ansari, the first pilgrim', ar: 'جابر بن عبد الله الأنصاري', at: S => S.pilgrims && labelV.copy(S.pilgrims.lab[0]), dy: .8, to: 11 },
+    { text: 'ʿAtiyya al-ʿAwfi, who guided him', ar: 'عطية العوفي', at: S => S.pilgrims && labelV.copy(S.pilgrims.lab[1]), dy: .2, to: 11 },
     { text: 'Imam Hussain', ar: 'الإمام الحسين', at: S => S.graveNoors[0].bob, from: 9 },
     { text: 'al-ʿAbbas', ar: 'العباس', at: S => S.graveNoors[1].bob, max: 400, from: 9 },
     { ...SAJJAD_L, from: 12, max: 170 },
@@ -3765,14 +4924,45 @@ function setupStep(i) {
   s.shot.apply(0);
 }
 const UI_DIM = ['card', 'storyPill', 'caption', 'ctrl'];
+// A map card names the chapter only where the chapter begins (or is entered from another chapter);
+// later cards in the same chapter name the scene instead, so a chapter never seems to start twice.
+let mapcardCh = 0;
 function fillMapcard(s) {
-  $('mcCh').textContent = s.ch; $('mcPlace').textContent = s.place; $('mcAr').textContent = (SCENE_AR[s.scene] || '');
+  const opensChapter = STEPS.find(st => st.chN === s.chN) === s || mapcardCh !== s.chN;
+  mapcardCh = s.chN;
+  $('mcCh').textContent = opensChapter ? s.ch : s.title; $('mcPlace').textContent = s.place; $('mcAr').textContent = (SCENE_AR[s.scene] || '');
   $('mcDate').textContent = s.date; $('mcKm').textContent = s.km ? `About ${s.km.toLocaleString('en-US')} km from Medina` : (s.mcKm || 'Where the journey begins');
 }
 const SCENE_AR = { medina: 'المدينة المنورة', hejaz: 'الحجاز', mecca: 'مكة المكرمة', saffah: 'الصفاح', kufa: 'الكوفة', zarud: 'زرود', zubala: 'زبالة', sharaf: 'شراف', escort: 'البيضة', karbala: 'كربلاء', damascus: 'دمشق' };
-function startStory() { phase = 'story'; setCardState(cardState); viewShift = viewShiftTarget; applyViewOffset(); $('intro').hidden = true; $('stamp').hidden = false; $('timeline').hidden = false; $('minimap').hidden = false; document.body.classList.add('cine'); }
+function startStory() { phase = 'story'; $('homeBtn').hidden = $('pauseBtn').hidden = false; setCardState(cardState); viewShift = viewShiftTarget; applyViewOffset(); $('intro').hidden = true; $('stamp').hidden = false; $('timeline').hidden = false; $('minimap').hidden = false; document.body.classList.add('cine'); }
+
+// ─────────── phones ───────────
+// The shots are composed for wide screens: on an upright phone, suggest turning it (once, for a few seconds).
+const UPRIGHT_PHONE = matchMedia('(orientation: portrait) and (max-width: 760px)');
+function rotateHint() {
+  let seen = false; try { seen = !!localStorage.getItem('karbala-rotate-hint'); } catch (e) {}
+  if (seen || !UPRIGHT_PHONE.matches) return;
+  const el = $('rotateHint'), hide = () => { el.classList.add('gone'); try { localStorage.setItem('karbala-rotate-hint', '1'); } catch (e) {} };
+  el.classList.remove('gone'); el.onclick = hide;
+  setTimeout(hide, 7000);
+  UPRIGHT_PHONE.addEventListener('change', hide, { once: true });
+}
+// swipe sideways across the scene to move between scenes
+{
+  let sx = 0, sy = 0, st = 0, ok = false;
+  $('app').addEventListener('touchstart', e => {
+    const t = e.touches[0]; ok = e.touches.length === 1 && !e.target.closest('.card,.timeline,.overlay,.pron,.mapcard,button,select,a');
+    sx = t.clientX; sy = t.clientY; st = performance.now();
+  }, { passive: true });
+  $('app').addEventListener('touchend', e => {
+    if (!ok || phase !== 'story' || busy || !$('outro').classList.contains('gone')) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (performance.now() - st < 700 && Math.abs(dx) > 60 && Math.abs(dy) < Math.abs(dx) * .6) { if (dx < 0) next(); else back(); }
+  }, { passive: true });
+}
 async function goTo(i) {
   if (busy || i < 0 || i >= STEPS.length) return;
+  setPaused(false);
   busy = true; clearTimeout(autoTimer);
   const s = STEPS[i], first = phase !== 'story', newScene = s.scene !== curScene || first;
   UI_DIM.forEach(id => $(id).classList.add('dim'));
@@ -3782,25 +4972,36 @@ async function goTo(i) {
     const fromCity = first ? (s.mapCity || null) : mapCityShown;
     fillMapcard(s); $('bigSvg')._city = fromCity; setMapProgress($('bigSvg'), mapStopShown);
     $('mapcard').classList.add('on'); SND.duck = .45; await wait(first ? 950 : 700);
+    if (!bootDone) await BOOTED;
     playing = false;
     if (first) startStory();
     show();
+    // the new place's shaders compile behind the map card (off the main thread where the browser can), and the card
+    // stays up until they are ready: compiling them in the first frames instead froze the picture for seconds
+    HOLD_RENDER = true;
+    const compiled = compileScene(9000);
     $('bigSvg')._city = s.mapCity || null;
     mapTween($('bigSvg'), mapStopShown, s.mapStop, s.mapCity ? FULL_BOX : boxFor(mapStopShown, s.mapStop), 2600, fromCity, s.mapCity || null);
     mapStopShown = s.mapStop; mapCityShown = s.mapCity || null;
-    await wait(2750);
+    await Promise.all([wait(2750), compiled]);
+    HOLD_RENDER = false; await wait(250);          // a few frames drawn while still covered, for the first uploads
     $('mapcard').classList.remove('on'); SND.duck = 1;
     playing = true;
     await wait(300);
   } else {
     $('fade').classList.add('soft', 'on'); playing = false;
     await wait(REDUCE ? 50 : 380);
+    if (!bootDone) await BOOTED;
     if (first) startStory();
     show();
+    // anything new in the scene has its shaders compiled while the fade still covers it
+    HOLD_RENDER = true; await compileScene(6000); HOLD_RENDER = false;
+    await wait(100);
     $('fade').classList.remove('on'); playing = true;
     await wait(REDUCE ? 0 : 420); $('fade').classList.remove('soft');
   }
   busy = false;
+  if (first) rotateHint();
   UI_DIM.forEach(id => $(id).classList.remove('dim'));
 }
 function onStepDone() {
@@ -3810,11 +5011,11 @@ function onStepDone() {
 }
 function scheduleAuto() {
   clearTimeout(autoTimer);
-  if (NARR.on) { autoTimer = setTimeout(() => { if (autoplay && stepDone && !busy) next(); }, 1500); return; }
+  if (NARR.on) { autoTimer = setTimeout(() => { if (autoplay && stepDone && !busy && !paused) next(); }, 1500); return; }
   const s = STEPS[stepIdx];
   const shown = cardState === 'expanded' ? (mode === 'young' ? s.young : s.full) : cardState === 'compact' ? (mode === 'young' ? s.shortY : s.shortF) : '';
   const words = shown ? shown.split(/\s+/).length : 0;
-  autoTimer = setTimeout(() => { if (autoplay && stepDone && !busy) next(); }, Math.max(2500, words * 280 - 4000));
+  autoTimer = setTimeout(() => { if (autoplay && stepDone && !busy && !paused) next(); }, Math.max(2500, words * 280 - 4000));
 }
 function next() { if (stepIdx >= STEPS.length - 1) showOutro(true); else goTo(stepIdx + 1); }
 function back() { if (stepIdx > 0) goTo(stepIdx - 1); }
@@ -3828,7 +5029,46 @@ function setMode(m) {
   if (stepIdx >= 0) renderCard();
   if (phase === 'story' && stepIdx >= 0 && NARR.on && !busy) narrStart(STEPS[stepIdx], false);
 }
-$('beginBtn').onclick = () => { $('intro').classList.add('gone'); goTo(0); };
+// ─────────── pause, and back to the start screen ───────────
+let paused = false, resumeIdx = 0;
+const ICON_PAUSE = '<path d="M8 5v14"/><path d="M16 5v14"/>', ICON_PLAY = '<path d="M7 4l13 8-13 8z"/>';
+function setPaused(p) {
+  if (p === paused || (p && phase !== 'story')) return;
+  paused = p;
+  const b = $('pauseBtn'); b.setAttribute('aria-pressed', String(p)); b.title = p ? 'Continue the story (Space)' : 'Pause the story (Space)';
+  $('pauseIco').innerHTML = p ? ICON_PLAY : ICON_PAUSE; $('pauseLbl').textContent = p ? 'Play' : 'Pause';
+  $('pausedBadge').hidden = !p;
+  narrPause(p);
+  if (SND.ac && SND.on) { if (p) SND.ac.suspend(); else SND.ac.resume(); }
+  if (p) clearTimeout(autoTimer); else if (autoplay && stepDone) scheduleAuto();
+}
+function setResume(i) {
+  resumeIdx = Math.max(0, i);
+  $('beginBtn').textContent = resumeIdx > 0 ? `Continue from “${STEPS[resumeIdx].title}” →` : 'Begin the journey →';
+  $('restartBtn').hidden = resumeIdx === 0;
+}
+function goHome() {
+  if (busy || phase !== 'story') return;
+  const at = stepIdx;
+  setPaused(false); narrStop(); clearTimeout(autoTimer); showOutro(false);
+  phase = 'intro'; stepIdx = -1; stepDone = false;
+  ['stamp', 'timeline', 'minimap', 'roll', 'sermon', 'card', 'caption', 'ctrl', 'storyPill', 'homeBtn', 'pauseBtn'].forEach(id => { $(id).hidden = true; });
+  $('labels').innerHTML = ''; LABEL_ELS = [];
+  document.body.classList.remove('cine');
+  // the caravan back among the palms of Medina, as on the first screen
+  const m = STEPS.findIndex(s => s.scene === 'medina');
+  enterScene('medina'); STEPS[m].enter(SCENES.medina); applyEnv(ENV.night); refreshEnvMap();
+  viewShift = viewShiftTarget = 0; applyViewOffset();
+  NARR.lastCh = 0; mapcardCh = 0;
+  setResume(at);
+  const intro = $('intro'); intro.hidden = false; intro.classList.remove('gone');
+  $('beginBtn').focus();
+}
+$('beginBtn').onclick = () => { $('intro').classList.add('gone'); goTo(resumeIdx); };
+$('restartBtn').onclick = () => { mapStopShown = 0; mapCityShown = STEPS[0].mapCity || null; mapDraw($('bigSvg'), FULL_BOX, 0); setResume(0); $('intro').classList.add('gone'); goTo(0); };
+$('homeBtn').onclick = goHome;
+$('pauseBtn').onclick = () => setPaused(!paused);
+$('pausedBadge').onclick = () => setPaused(false);
 $('nextBtn').onclick = next; $('backBtn').onclick = back;
 $('replayBtn').onclick = () => { showOutro(false); mapStopShown = 0; mapCityShown = STEPS[0].mapCity || null; NARR.lastCh = 0; mapDraw($('bigSvg'), FULL_BOX, 0); goTo(0); };
 $('lastBtn').onclick = () => { showOutro(false); goTo(STEPS.length - 1); };
@@ -3837,6 +5077,7 @@ document.addEventListener('keydown', e => {
   if (phase !== 'story' || e.altKey || e.ctrlKey || e.metaKey || !$('outro').classList.contains('gone')) return;
   if (e.key === 'ArrowRight') { e.preventDefault(); next(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
   else if (e.key === 'h' || e.key === 'H') { e.preventDefault(); setCardState(cardState === 'hidden' ? 'compact' : 'hidden'); }
+  else if (e.key === ' ' && !e.target.closest('button,select,input,textarea,a')) { e.preventDefault(); setPaused(!paused); }
 });
 // ─────────── sound: natural soundscapes built from filtered noise, mixed per scene (no music) ───────────
 const SND = { on: false, duck: 1, last: {}, nh: 0, nc: 0 };
@@ -3942,19 +5183,22 @@ function voiceLabel(v) {
     .replace(/\s*-\s*English\s*\((.+)\)/, (m, r) => ` (${r.replace('United Kingdom', 'UK').replace('United States', 'US')})`).replace(/\bEnglish\s+/, '');
 }
 function fillVoices() {
-  if (!HAS_TTS) return;
-  const vs = speechSynthesis.getVoices().filter(v => voiceScore(v) > -1).sort((a, b) => voiceScore(b) - voiceScore(a)).slice(0, 12);
-  if (!vs.length) return;
+  const vs = HAS_TTS ? speechSynthesis.getVoices().filter(v => voiceScore(v) > -1).sort((a, b) => voiceScore(b) - voiceScore(a)).slice(0, 12) : [];
+  if (!vs.length && !NARR_AUDIO) return;
   const sel = $('voiceSel'), keep = NARR.voice && vs.find(v => v.name === NARR.voice.name);
-  sel.innerHTML = vs.map((v, i) => `<option value="${i}">${esc(voiceLabel(v))}</option>`).join('');
-  sel._vs = vs; NARR.voice = keep || vs[0]; sel.value = String(vs.indexOf(NARR.voice));
-  ['narrRow', 'narrBtn', 'narrLabel', 'pronBtn'].forEach(id => { $(id).hidden = false; });
-  $('narrHint').hidden = voiceScore(NARR.voice) >= 20;
+  const opts = vs.map((v, i) => `<option value="${i}">${esc(voiceLabel(v))}</option>`).join('');
+  sel.innerHTML = NARR_AUDIO ? '<optgroup label="Recorded, the same in every browser"><option value="rec">Michael</option></optgroup>' + (opts && `<optgroup label="Voices in this browser">${opts}</optgroup>`) : opts;
+  sel._vs = vs; NARR.voice = keep || vs[0] || null;
+  sel.value = NARR_AUDIO && (NARR.rec || !NARR.voicePicked) ? 'rec' : String(vs.indexOf(NARR.voice));
+  NARR.rec = sel.value === 'rec';
+  ['narrRow', 'narrBtn', 'narrLabel'].forEach(id => { $(id).hidden = false; });
+  $('pronBtn').hidden = NARR.rec || !vs.length;
+  $('narrHint').hidden = NARR.rec || voiceScore(NARR.voice) >= 20;
   // the default is chosen before the story starts; voices that arrive later never restart a scene
   if (!NARR.userSet && phase !== 'story') setNarr(true, false);
 }
 function setNarr(on, user = true) {
-  NARR.on = !!(on && NARR.voice); if (user) NARR.userSet = true;
+  NARR.on = !!(on && (NARR.rec || NARR.voice)); if (user) NARR.userSet = true;
   ['narrBtn', 'narrIntroBtn'].forEach(id => $(id).setAttribute('aria-pressed', String(NARR.on)));
   $('narrState').textContent = NARR.on ? 'On' : 'Off';
   if (phase === 'story' && stepIdx >= 0 && !busy) { if (NARR.on) { $('capText').textContent = ''; narrStart(STEPS[stepIdx], false); } else { narrStop(); subtitle(null); } }
@@ -3973,6 +5217,8 @@ const NAME_SAY = [
   { id: 'akbar', label: 'ʿAli al-Akbar', re: /ʿAli al-Akbar/g, opts: ['Ali al-Akbar', 'Ali Akbar', 'Aalee al-Akbar'], us: 'Ali Akbar' },
   { id: 'qasim', label: 'al-Qasim', re: /al-Qasim/g, opts: ['al-Qasim', 'al-Qaasim', 'al-Qah-sim'], gb: "al-Qah-sim" },
   { id: 'aqil', label: 'Muslim ibn ʿAqil', re: /ʿAqil/g, opts: ['Aqeel', 'Akeel', 'A-qeel'] },
+  // written as it is, voices spell it out letter by letter
+  { id: 'ibn', label: 'ibn ("son of")', re: /\b[Ii]bn\b/g, opts: ['Ibbin', 'Ibben', 'Ibbun', 'Ibn'] },
   { id: 'ziyad', label: 'Ibn Ziyad', re: /\bZiyad\b/g, opts: ['Ziyad', 'Ziyaad', 'Zi-yahd'], us: 'Ziyaad', gb: "Zi-yahd" },
   { id: 'ubaydullah', label: 'ʿUbaydullah', re: /ʿUbaydullah/g, opts: ['Ubaydullah', 'Obaidullah', 'Ubay-dullah'], gb: "Obaidullah" },
   { id: 'hurr', label: 'al-Hurr', re: /\bHurr\b/g, opts: ['Hurr', 'Hur', 'Hoor'], gb: "Hoor" },
@@ -3995,6 +5241,8 @@ const NAME_SAY = [
 const PRON_KEY = 'karbala-pronunciation';
 let PRON_OVR = { us: {}, gb: {} };
 try { const j = JSON.parse(localStorage.getItem(PRON_KEY) || 'null'); if (j) PRON_OVR = { us: j.us || {}, gb: j.gb || {} }; } catch (e) {}
+const NAME_BY_ID = Object.fromEntries(NAME_SAY.map(n => [n.id, n]));
+const unmark = s => s.replace(/⟦(\w+)⟧/g, (m, id) => NAME_BY_ID[id] ? pronOf(NAME_BY_ID[id]) : id);
 const voiceLoc = () => /^en[-_]GB/i.test((NARR.voice && NARR.voice.lang) || '') ? 'gb' : 'us';
 const pronOf = n => PRON_OVR[voiceLoc()][n.id] || n[voiceLoc()] || n.opts[0];
 const SAY_FIX = [
@@ -4014,7 +5262,7 @@ function spokenSeq(parts, seen) {
         seen.add(idx); return m + `, peace be upon ${who || (h === 'SA' ? 'her' : 'him')},`;
       });
     });
-    for (const n of NAME_SAY) s = s.replace(n.re, pronOf(n));
+    for (const n of NAME_SAY) s = s.replace(n.re, '⟦' + n.id + '⟧');
     for (const [re, r] of SAY_FIX) s = s.replace(re, r);
     return s.replace(/\s+,/g, ',').replace(/,\s*,/g, ',').replace(/(, peace be upon him,) (Imam [^,.;:]{1,30}), peace be upon him,/g, '$1 $2,')
       .replace(/,\s*([.!?;:)])/g, '$1').replace(/\s+/g, ' ').trim();
@@ -4044,7 +5292,7 @@ function sermonItems(sm, lead, seen) {
 }
 function narrItems(s, announce) {
   const young = mode === 'young', seen = new Set(), items = [];
-  if (announce && s.chN !== NARR.lastCh) items.push({ say: `Chapter ${s.chN}. ${CHAPTER_NAMES[s.chN - 1]}.`, sub: '', gap: 700 });
+  if (announce && s.chN !== NARR.lastCh) items.push({ say: `Chapter ${s.chN}. ${NAME_SAY.reduce((t, n) => t.replace(n.re, '⟦' + n.id + '⟧'), CHAPTER_NAMES[s.chN - 1])}.`, sub: '', gap: 700 });
   NARR.lastCh = s.chN;
   const main = sentences(young ? s.young : s.full), said = spokenSeq(main, seen);
   main.forEach((m, k) => items.push({ say: said[k], sub: m, gap: k === main.length - 1 ? 650 : 280, at: k ? undefined : .4 }));
@@ -4062,40 +5310,116 @@ function subtitle(txt) {
   if (txt === null) { el.textContent = mode === 'young' ? s.shortY : s.shortF; el.classList.remove('long'); return; }
   el.textContent = txt; el.classList.toggle('long', txt.length > 170);
 }
+const NARR_AUDIO = window.NARR_AUDIO || null;
+// the same 32-bit FNV-1a fingerprint the generator uses to name each line's audio file
+function narrKey(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }
+let NARR_AC = null, NARR_GAIN = null;
+const NARR_BUF = new Map();
+function narrCtx() {
+  if (!NARR_AC) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; NARR_AC = new AC(); NARR_GAIN = NARR_AC.createGain(); NARR_GAIN.connect(NARR_AC.destination); }
+  return NARR_AC;
+}
+// audio may only start after the visitor has interacted with the page; on iPhones it should also play with the ringer switched off
+for (const ev of ['pointerdown', 'pointerup', 'touchend', 'keydown']) addEventListener(ev, () => { const c = narrCtx(); if (c && c.state === 'suspended') c.resume(); }, { capture: true });
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+function clipBuffer(key) {
+  if (NARR_BUF.has(key)) return NARR_BUF.get(key);
+  const c = narrCtx();
+  const p = !c ? Promise.reject(new Error('no audio')) : (NARR_AUDIO.data
+    ? Promise.resolve(Uint8Array.from(atob(NARR_AUDIO.data[key]), ch => ch.charCodeAt(0)).buffer)
+    : fetch(NARR_AUDIO.base + key + '.mp3').then(r => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); })).then(ab => c.decodeAudioData(ab));
+  p.catch(() => NARR_BUF.delete(key));
+  NARR_BUF.set(key, p);
+  return p;
+}
+const hasClip = text => !!(NARR_AUDIO && NARR_AUDIO.files[narrKey(text)]);
+// Every line the narrator can say, for recording (see tools/karbala-narration): in the browser console,
+// copy(JSON.stringify(karbalaNarrationLines()))
+window.karbalaNarrationLines = () => {
+  const lines = new Map(), add = (say, where) => { if (say && !lines.has(say)) lines.set(say, where); };
+  const keepCh = NARR.lastCh;
+  STEPS.forEach((st, k) => {
+    NARR.lastCh = 0;
+    narrItems(st, true).forEach(it => add(it.say, k + 1));
+    // the roll of honour can restart part-way (narration switched on mid-scene); blessings then fall on other lines
+    if (st.narrRoll) {
+      const had = SCENES[st.scene];
+      for (const e of ROLL) { SCENES[st.scene] = { rollT: e.t }; narrItems(st, false).forEach(it => add(it.say, k + 1)); }
+      if (had) SCENES[st.scene] = had; else delete SCENES[st.scene];
+    }
+  });
+  add(spokenSeq([SAMPLE_LINE], new Set())[0], 'sample');
+  NARR.lastCh = keepCh;
+  return [...lines].map(([say, where]) => ({ say, where }));
+};
+function narrPause(p) {
+  if (!NARR.busy) return;
+  clearTimeout(NARR.guard);
+  if (p) {
+    if (NARR.src && NARR_AC) NARR_AC.suspend();
+    else if (NARR.speaking && HAS_TTS) try { speechSynthesis.pause(); } catch (e) {}
+    return;
+  }
+  if (NARR.src && NARR_AC) { NARR_AC.resume(); const left = NARR.src.buffer.duration - (NARR_AC.currentTime - NARR.src.t0); NARR.guard = setTimeout(NARR.fin, Math.max(0, left) * 1000 + 3000); }
+  else if (NARR.speaking && HAS_TTS) { try { speechSynthesis.resume(); } catch (e) {} NARR.guard = setTimeout(NARR.fin, 20000); }
+}
 function narrStop() {
+  if (NARR.src) { try { NARR.src.onended = null; NARR.src.stop(); } catch (e) {} NARR.src = null; }
   NARR.run++; clearTimeout(NARR.timer); clearTimeout(NARR.guard);
   if (HAS_TTS) try { speechSynthesis.cancel(); } catch (e) {}
   NARR.busy = NARR.speaking = NARR.drive = false; NARR.rollTarget = Infinity;
 }
 function narrStart(s, announce = true) {
   narrStop();
-  if (!NARR.on || !NARR.voice || !HAS_TTS) return;
+  if (!NARR.on || (!NARR.rec && (!NARR.voice || !HAS_TTS))) return;
   const run = NARR.run, items = narrItems(s, announce);
   NARR.busy = NARR.drive = true; NARR.sermonK = -1;
-  NARR.rollTarget = s.narrRoll ? Math.max(2.5, SCENES[s.scene].rollT || 0) : Infinity;
+  // the roll waits while the narrator gives the background, short of the moment the first name's label and light
+  // would stir (1.2 and 0.8 s before its time), so no one is singled out until their name is read
+  NARR.rollTarget = s.narrRoll ? Math.max(ROLL[0].t - 1.5, SCENES[s.scene].rollT || 0) : Infinity;
   let k = 0;
   const next = () => {
     if (run !== NARR.run) return;
+    if (paused) { NARR.timer = setTimeout(next, 250); return; }
     if (k >= items.length) { NARR.busy = NARR.speaking = false; if (s.narrRoll) NARR.rollTarget = 1e9; return; }
     const it = items[k];
     if (it.only && !it.only()) { k++; next(); return; }
     if (it.at !== undefined && stepT < it.at) { NARR.timer = setTimeout(next, 150); return; }
     k++;
-    const u = new SpeechSynthesisUtterance(it.say);
-    u.voice = NARR.voice; u.lang = NARR.voice.lang; u.rate = mode === 'young' ? .93 : .97; u.pitch = 1;
     let done = false;
-    const fin = () => { if (done || run !== NARR.run) return; done = true; clearTimeout(NARR.guard); NARR.speaking = false; NARR.timer = setTimeout(next, it.gap ?? 280); };
-    u.onend = fin;
-    u.onerror = e => { if (run !== NARR.run) return; if (e && e.error === 'not-allowed') narrUnavailable(); else fin(); };
+    const fin = () => { if (done || run !== NARR.run) return; done = true; clearTimeout(NARR.guard); NARR.speaking = false; NARR.src = null; NARR.timer = setTimeout(next, it.gap ?? 280); };
+    NARR.fin = fin;
+    const live = () => {
+      if (!HAS_TTS || !NARR.voice) { NARR.guard = setTimeout(fin, 1500 + it.say.length * 60); return; }
+      const u = new SpeechSynthesisUtterance(unmark(it.say));
+      u.voice = NARR.voice; u.lang = NARR.voice.lang; u.rate = mode === 'young' ? .93 : .97; u.pitch = 1;
+      u.onend = fin;
+      u.onerror = e => { if (run !== NARR.run) return; if (e && e.error === 'not-allowed') narrUnavailable(); else fin(); };
+      // a browser that never reports the end of a sentence must not stall the story
+      NARR.guard = setTimeout(fin, 4000 + it.say.length * 120);
+      speechSynthesis.speak(u);
+    };
     if (it.sub !== undefined) subtitle(it.sub);
     if (it.hook) it.hook();
     NARR.speaking = true;
-    // a browser that never reports the end of a sentence must not stall the story
-    NARR.guard = setTimeout(fin, 4000 + it.say.length * 120);
-    speechSynthesis.speak(u);
+    if (NARR.rec && hasClip(it.say)) {
+      // the recorded line; the next one is fetched while this one plays
+      const nxt = items[k]; if (nxt && hasClip(nxt.say)) clipBuffer(narrKey(nxt.say));
+      // a clip that cannot be loaded in time is read by the browser's voice instead
+      let fell = false;
+      const fallback = () => { if (fell || done || run !== NARR.run) return; fell = true; clearTimeout(NARR.guard); live(); };
+      NARR.guard = setTimeout(fallback, 8000);
+      clipBuffer(narrKey(it.say)).then(buf => {
+        if (run !== NARR.run || done || fell) return;
+        clearTimeout(NARR.guard);
+        const src = NARR_AC.createBufferSource(); src.buffer = buf; src.connect(NARR_GAIN); src.onended = fin; src.start(); src.t0 = NARR_AC.currentTime;
+        NARR.src = src; if (!paused) NARR.guard = setTimeout(fin, buf.duration * 1000 + 3000);
+      }).catch(fallback);
+    } else live();
   };
   next();
 }
+if (NARR_AUDIO && !HAS_TTS) fillVoices();
 if (HAS_TTS) {
   fillVoices();
   if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', fillVoices); else speechSynthesis.onvoiceschanged = fillVoices;
@@ -4103,10 +5427,13 @@ if (HAS_TTS) {
 }
 $('narrBtn').onclick = () => setNarr(!NARR.on);
 $('narrIntroBtn').onclick = () => setNarr(!NARR.on);
+const SAMPLE_LINE = 'Imam Hussain (AS), al-ʿAbbas (AS) and Sayyida Zaynab (SA) travelled from Medina to Karbala, while Yazid ruled from Damascus and Ibn Ziyad from Kufa.';
 $('voiceTry').onclick = () => {
-  if (!HAS_TTS || !NARR.voice) return;
+  const say = spokenSeq([SAMPLE_LINE], new Set())[0];
   narrStop();
-  const u = new SpeechSynthesisUtterance(spokenSeq(['Imam Hussain (AS), al-ʿAbbas (AS) and Sayyida Zaynab (SA) travelled from Medina to Karbala, while Yazid ruled from Damascus and Ibn Ziyad from Kufa.'], new Set())[0]);
+  if (NARR.rec && hasClip(say)) { clipBuffer(narrKey(say)).then(buf => { const src = NARR_AC.createBufferSource(); src.buffer = buf; src.connect(NARR_GAIN); src.start(); NARR.src = src; }).catch(() => {}); return; }
+  if (!HAS_TTS || !NARR.voice) return;
+  const u = new SpeechSynthesisUtterance(unmark(say));
   u.voice = NARR.voice; u.lang = NARR.voice.lang; u.rate = .95;
   speechSynthesis.speak(u);
 };
@@ -4144,12 +5471,61 @@ $('pronCopy').onclick = () => {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => done('Copied. Paste it into the chat.'), () => { t.select(); done('Select the text below and copy it.'); });
   else { t.select(); done('Select the text below and copy it.'); }
 };
-$('voiceSel').onchange = () => { const v = $('voiceSel')._vs[+$('voiceSel').value]; if (v) { NARR.voice = v; $('narrHint').hidden = voiceScore(v) >= 20; } };
+$('voiceSel').onchange = () => {
+  const sel = $('voiceSel'); NARR.voicePicked = true; NARR.rec = sel.value === 'rec';
+  const v = sel._vs[+sel.value]; if (v) NARR.voice = v;
+  $('narrHint').hidden = NARR.rec || voiceScore(NARR.voice) >= 20; $('pronBtn').hidden = NARR.rec;
+};
 
 // ─────────── main loop ───────────
+// A device that cannot keep up (typical frame slower than 1/45 s over two seconds of the story) steps down a level:
+// a lower resolution, then a smaller shadow map, then lower resolution again. When frames are quick again (typical
+// frame under 1/80 s over four seconds, and the last change ten seconds ago) it steps back up, so one heavy scene does
+// not leave the rest of the story blurred. The median ignores one-off pauses; scene changes and pauses are not
+// counted. Nothing here rebuilds shaders (changing the kind of shadow would, for seconds of frozen picture), and the
+// glow stays at every level: it is what makes the lights of the family read as light.
+const QUALITY = { level: 0, times: [], at: 0 };
+const Q_LEVELS = [{ pr: Infinity, sh: 2048 }, { pr: 1.25, sh: 2048 }, { pr: 1, sh: 2048 }, { pr: 1, sh: 1024 }, { pr: .8, sh: 1024 }, { pr: .65, sh: 1024 }];
+const Q_PR0 = Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 1.75);
+function setQuality(level) {
+  const L = Q_LEVELS[level], pr = Math.min(Q_PR0, L.pr);
+  QUALITY.level = level; QUALITY.at = TIME;
+  if (renderer.getPixelRatio() !== pr) { renderer.setPixelRatio(pr); composer.setPixelRatio(pr); resize(); }
+  if (key.shadow.mapSize.x !== L.sh) { key.shadow.mapSize.set(L.sh, L.sh); if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; } }
+}
+function adaptQuality(raw) {
+  if (phase !== 'story' || document.hidden || paused || busy) { QUALITY.times.length = 0; return; }
+  QUALITY.times.push(raw);
+  if (QUALITY.times.length !== 120 && QUALITY.times.length !== 240) return;
+  const med = QUALITY.times.slice().sort((a, b) => a - b)[QUALITY.times.length >> 1];
+  if (med > 1 / 45 && QUALITY.level < Q_LEVELS.length - 1) {
+    // skip levels that would change nothing on this screen (a phone already drawing at 1.5, say)
+    let l = QUALITY.level + 1; while (l < Q_LEVELS.length - 1 && Math.min(Q_PR0, Q_LEVELS[l].pr) === renderer.getPixelRatio() && Q_LEVELS[l].sh === key.shadow.mapSize.x) l++;
+    setQuality(l); QUALITY.times.length = 0; return;
+  }
+  if (QUALITY.times.length < 240) return;
+  if (med < 1 / 80 && QUALITY.level > 0 && TIME - QUALITY.at > 10) setQuality(QUALITY.level - 1);
+  QUALITY.times.length = 0;
+}
 const clock = new THREE.Clock();
+// the still of the first scene, shown while the scenes are prepared, fades once the scene itself has been drawn
+let POSTER = document.getElementById('poster') ? { el: document.getElementById('poster'), n: 0 } : null, HOLD_RENDER = false;
+// compiles the scene's shaders in the background (where the browser can) and resolves once they are ready, or after
+// maxMs; while nothing is drawn the GPU queue is flushed now and then, or the compiling waits on the next frame
+// the shaders are built for drawing into the composer's image, as the story is drawn (built for the screen they
+// would differ, in colour space and tone mapping, and the real ones would still be built on the first frame)
+function compileScene(maxMs) {
+  scanLights();
+  const gl = renderer.getContext(), fl = setInterval(() => gl.flush(), 16), rt = renderer.getRenderTarget();
+  let p;
+  try { renderer.setRenderTarget(composer.readBuffer); p = renderer.compileAsync(scene, camera).catch(() => {}); } catch (e) { p = Promise.resolve(); } finally { renderer.setRenderTarget(rt); }
+  return Promise.race([p, wait(maxMs)]).finally(() => clearInterval(fl));
+}
 function frame() {
-  const dt = Math.min(clock.getDelta(), .05);
+  if (HOLD_RENDER) { requestAnimationFrame(frame); return; }
+  if (POSTER && ++POSTER.n > 3) { POSTER.el.classList.add('gone'); POSTER = null; }
+  const raw = clock.getDelta(), dt = paused ? 0 : Math.min(raw, .05);
+  adaptQuality(raw);
   TIME += dt;
   BANNER_U.uTime.value = TIME;
   if (Math.abs(viewShift - viewShiftTarget) > .002) { viewShift = lerp(viewShift, viewShiftTarget, 1 - Math.exp(-dt * 3)); applyViewOffset(); }
@@ -4163,7 +5539,8 @@ function frame() {
   } else if (phase === 'story' && stepIdx >= 0) {
     const s = STEPS[stepIdx], S = SCENES[s.scene];
     const adt = playing ? dt : 0;
-    if (playing) stepT += dt;
+    // the story keeps to real time when frames are slow (only a stall longer than a tenth of a second is skipped)
+    if (playing && !paused) stepT += Math.min(raw, .1);
     const t = Math.min(stepT, s.dur);
     if (s.envFrom) {
       const k = smooth(0, s.envT, s.envClock ? s.envClock(S) : t);
@@ -4172,6 +5549,7 @@ function frame() {
       if (k < 1) s._envDone = false;
     }
     s.update(t, adt, S, stepT);
+    for (const L of CAV_LINES) L.update();
     updateLabels(s, S, stepT);
     if (!playing) army.forEach(a => a.group.visible && a.mixer.update(0));
     s.shot.apply(t);
@@ -4187,11 +5565,11 @@ function frame() {
     }
     // listening, a scene is done when its key moment has played and the narrator has finished
     const need = NARR.on ? (s.cdur || s.dur) : cardState === 'expanded' ? s.dur : (s.cdur || s.dur);
-    if (playing && stepT >= need && !NARR.busy && !stepDone) onStepDone();
+    if (playing && !paused && stepT >= need && !NARR.busy && !stepDone) onStepDone();
     updateStat();
   }
   M.water.normalMap.offset.x = TIME * .012; M.water.normalMap.offset.y = TIME * .004;
-  RIVER_FLOW.value.set(TIME * .018, -TIME * .011); STREAK_TEX.offset.x = TIME * .022;
+  RIVER_FLOW.value.set(TIME * .018, -TIME * .011); STREAK_TEX.offset.x = TIME * .022; REED_TIME.value = TIME;
   if (curScene === 'karbala') {
     const S = SCENES.karbala;
     if (S.enemy.visible) S.fires.forEach(f => {
@@ -4212,27 +5590,43 @@ function frame() {
   DUST.update(dt, .5, .15); SPARKS.update(dt, .3, .2); SPLASH.update(dt, .2, -7); SMOKE.update(dt, .25, .18); EMBER_GLOW.update(dt, .5, 0); NOOR_MOTES.update(dt, .2, .06);
   NOOR_GAIN.v = Math.round(clamp(.26 / bloom.strength, .45, 1) * 20) / 20;
   for (const n of NOORS) n.update(TIME, dt);
+  updateLightPool();
   composer.render(dt);
   requestAnimationFrame(frame);
 }
 
 // ─────────── boot ───────────
+// The scenes are prepared in steps with a breath between them, so the page keeps responding meanwhile; Begin works
+// from the start (the journey waits on its first map card until everything is ready, see goTo).
+let bootDone = false, bootResolve;
+const BOOTED = new Promise(r => { bootResolve = r; });
+const breathe = pct => { $('loadMsg').textContent = `Preparing the scenes… ${pct}%`; return new Promise(r => { const c = new MessageChannel(); c.port1.onmessage = () => r(); c.port2.postMessage(0); }); };
 (async () => {
   try {
-    const [horse, camelA, camelB, palmA, palmB, rockA, rockB, rockC, firepit, rider] = await Promise.all(
-      ['horse', 'camelA', 'camelB', 'palmA', 'palmB', 'rockA', 'rockB', 'rockC', 'firepit', 'rider'].map(k => parseGLB(MODELS[k])));
+    $('beginBtn').disabled = false;
+    const [horse, camelA, camelB, palmA, palmB, rockA, rockB, rockC, firepit, rider, howdah, man, riderLow] = await Promise.all(
+      ['horse', 'camelA', 'camelB', 'palmA', 'palmB', 'rockA', 'rockB', 'rockC', 'firepit', 'rider', 'howdah', 'man', 'riderLow'].map(k => parseGLB(MODELS[k])));
+    await breathe(30);
     const T = {
       palmA: normalized(palmA.scene, 1, { tintLeaves: true }), palmB: normalized(palmB.scene, 1, { tintLeaves: true }),
       rockA: normalized(rockA.scene, 1, { stone: '#9b7a57' }), rockB: normalized(rockB.scene, 1, { stone: '#9b7a57' }), rockC: normalized(rockC.scene, 1, { stone: '#a8865f' }),
       firepit: normalized(firepit.scene, .45),
     };
     const horseTpl = prepHorse(horse);
+    horseTpl.live = prepLiveRider(rider);
+    await breathe(40);
     { const rs = prepRider(rider); horseTpl.riders = rs.soldier; horseTpl.civil = rs.civil; horseTpl.hands = rs.hands; RIDER_HANDS = rs.hands; }
+    await breathe(50);
     const camelTplA = prepCamel(camelA), camelTplB = prepCamel(camelB);
     camelTplA.mat = camelTplA.mat.clone(); camelTplA.mat.color.setScalar(1.12);
     camelTplB.mat = camelTplB.mat.clone(); camelTplB.mat.color.setScalar(.8);
 
     TPL = T; T.horse = horseTpl; T.camelTplA = camelTplA; T.camelTplB = camelTplB;
+    HOWDAH = prepHowdah(howdah);
+    await breathe(60);
+    MAN = prepMan(man);
+    await breathe(75);
+    MASS_RIDER = prepRider(riderLow, 'horse').soldier;
     RIDER_CIVIL = horseTpl.civil;
     ['howdah', 'pack', 'howdah', 'pack', 'howdah', 'pack', 'pack'].forEach((kind, i) => {
       const c = new CamelUnit(i % 3 === 1 ? camelTplB : camelTplA, kind, i);
@@ -4258,17 +5652,20 @@ function frame() {
     { const L = new THREE.PointLight('#ffb468', 0, 34, 1.25); L.position.set(0, 4.6, 0); caravan.camels[3].group.add(L); caravanLights.push(L); }
     const armyColors = ['bay', 'black', 'dun', 'bay', 'chestnut', 'black'];
     for (let i = 0; i < 40; i++) { const a = new HorseUnit(horseTpl, armyColors[i % armyColors.length], true, i); a.group.visible = false; army.push(a); scene.add(a.group); }
+    await breathe(85);
 
     buildTimeline();
     enterScene('medina');
     applyEnv(ENV.night); refreshEnvMap();
+    // the shaders are compiled off the main thread where the browser can, so the first frame does not stall
+    await compileScene(6000);
     phase = 'intro';
     $('loading').hidden = true;
-    $('beginBtn').disabled = false;
+    bootDone = true; bootResolve();
     requestAnimationFrame(frame);
     const m = /^#step-(\d+)(?:-t(\d+))?$/.exec(location.hash);
     if (m && m[2] !== undefined) {
-      $('intro').hidden = true; phase = 'story';
+      $('intro').hidden = true; phase = 'story'; $('homeBtn').hidden = $('pauseBtn').hidden = false;
       const cs = /card=(\w+)/.exec(location.search); setCardState(cs ? cs[1] : 'compact'); viewShift = viewShiftTarget; applyViewOffset();
       ['stamp', 'timeline', 'minimap'].forEach(id => { $(id).hidden = false; });
       document.body.classList.add('cine');

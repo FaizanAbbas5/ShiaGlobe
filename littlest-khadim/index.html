@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A Kumayl &amp; Fizza picture book about the Arbaeen walk to Karbala. Fizza is too small for every job at the mawkib, until she spots the one person everyone else walked past.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tārīkh al-Shi'a">
+<meta property="og:title" content="The Littlest Khadim">
+<meta property="og:description" content="A Kumayl &amp; Fizza picture book about the Arbaeen walk to Karbala. Fizza is too small for every job at the mawkib, until she spots the one person everyone else walked past.">
+<meta property="og:url" content="https://faizanabbas5.github.io/ShiaGlobe/littlest-khadim/">
+<meta property="og:image" content="https://faizanabbas5.github.io/ShiaGlobe/assets/img/stories/littlest-khadim.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+</head>
+<body>
+<title>The Littlest Khadim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Andika:wght@400;700&family=Baloo+2:wght@600;700;800&display=swap">
+<style>
+/* The book reader shared by the Kumayl & Fizza books. Each book supplies PAGES and its art (the BOOK script slot).
+   Layout: nothing but the book on a lilac cloth. It starts closed on its front cover, opens to two facing pages
+   that turn over at the spine, and shows one page at a time where two would be too small to read. */
+:root {
+  --cloth: #d9d3e6; --cloth-deep: #c7bedb; --muted: #5b5370; --edge: #ebe2d1; --edge-deep: #c8bba5;
+  --shadow: rgba(38, 24, 66, .34); --focus: #2f62d0;
+  --read: 'Andika', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --cloth: #1d1a34; --cloth-deep: #15122a; --muted: #aaa2c6; --edge: #ddd3c1; --edge-deep: #a99c86;
+    --shadow: rgba(0, 0, 0, .6); --focus: #9fc1ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --cloth: #1d1a34; --cloth-deep: #15122a; --muted: #aaa2c6; --edge: #ddd3c1; --edge-deep: #a99c86;
+  --shadow: rgba(0, 0, 0, .6); --focus: #9fc1ff; color-scheme: dark; }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: radial-gradient(ellipse at 50% 45%, var(--cloth), var(--cloth-deep) 95%); background-color: var(--cloth); color: var(--muted); font-family: var(--read); }
+.app { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding-block: 20px; padding-inline: 16px; }
+
+/* the book */
+.stage { position: relative; width: 100%; display: flex; justify-content: center; overflow-x: clip; }
+.book { position: relative; width: var(--bookw); height: var(--ph); perspective: calc(var(--pw) * 6); }
+.book.closed { transform: translateX(-25%); }
+.slot { position: absolute; top: 0; width: var(--pw); height: 100%; cursor: pointer; }
+.slot.empty { visibility: hidden; }
+.slot.l { left: 0; box-shadow: -1px 1px 0 var(--edge), -3px 2px 0 var(--edge-deep), -4px 3px 0 var(--edge), -6px 4px 0 var(--edge-deep), 0 22px 40px -14px var(--shadow); }
+.slot.r { right: 0; box-shadow: 1px 1px 0 var(--edge), 3px 2px 0 var(--edge-deep), 4px 3px 0 var(--edge), 6px 4px 0 var(--edge-deep), 0 22px 40px -14px var(--shadow); }
+/* the fold at the spine: each page darkens a little towards it (sL: the spine is on the page's left, sR: on its right) */
+.fold { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.fold.sL { background: linear-gradient(to right, rgba(28, 16, 40, .34), rgba(28, 16, 40, .1) 2.5%, rgba(255, 255, 255, .06) 5%, transparent 9%); }
+.fold.sR { background: linear-gradient(to left, rgba(28, 16, 40, .34), rgba(28, 16, 40, .1) 2.5%, rgba(255, 255, 255, .06) 5%, transparent 9%); }
+/* closed, the front cover shows the hinge of the binding; one page at a time, just a faint edge */
+.book.closed .slot.r .fold { background: linear-gradient(to right, rgba(0, 0, 0, .38), rgba(255, 255, 255, .14) 1.1%, rgba(0, 0, 0, .12) 2.2%, transparent 3.5%); }
+.book.single .fold.sL { background: linear-gradient(to right, rgba(28, 16, 40, .22), transparent 3%); }
+/* a page while it turns */
+.leaf { position: absolute; top: 0; width: var(--pw); height: 100%; transform-style: preserve-3d; z-index: 5; pointer-events: none; }
+.leaf.fwd { right: 0; transform-origin: left center; }
+.book.single .leaf.fwd { left: 0; right: auto; }
+.leaf.bwd { left: 0; transform-origin: right center; }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; background: #f6efe2; }
+.face.b { transform: rotateY(180deg); }
+.dim { position: absolute; inset: 0; background: #140a22; opacity: 0; pointer-events: none; z-index: 3; }
+
+/* one page of the book: the picture fills it; the text sits on a paper panel inside the picture */
+.page { position: absolute; inset: 0; overflow: hidden; container-type: inline-size; background: #f6efe2; }
+.page svg, .page img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.text { position: absolute; box-sizing: border-box; background: #fff8ea; color: #2b2240; border-radius: 1.4cqw; padding: 2.2cqw 2.4cqw;
+  box-shadow: 0 .4cqw 1.4cqw rgba(30, 15, 50, .28); font-size: 1.9cqw; line-height: 1.48; font-family: var(--read); }
+.text p { margin: 0 0 .7em; text-wrap: pretty; break-inside: avoid; }
+.text p:last-child { margin-bottom: 0; }
+.said { color: #6b2f6f; }
+.big { font-weight: 700; color: #1f4f96; }
+.blank { position: absolute; inset: 0; background: #f6efe2; }
+
+/* faint arrows either side of the book; pages also turn by clicking or tapping them, swiping, or the arrow keys */
+.nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 72px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; opacity: .5; transition: opacity .2s; }
+.nav svg { width: 28px; height: 28px; }
+.nav:hover, .nav:focus-visible { opacity: 1; }
+.nav:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+.nav.prev { left: 0; } .nav.next { right: 0; }
+.nav:disabled { visibility: hidden; }
+body.small .nav { display: none; }
+/* faint switches in the corner: one page at a time for bigger text (shown only where two pages fit), and full screen
+   (F key too; hidden where the browser can't go full screen). Each icon shows what it switches to. */
+.tools { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; display: flex; z-index: 10; }
+.tool { width: 40px; height: 40px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; opacity: .45; transition: opacity .2s; }
+.tool svg { width: 22px; height: 22px; }
+.fs .off, body.fullscreen .fs .on { display: none; } body.fullscreen .fs .off { display: inline; }
+.view .two, body.one-page .view .one { display: none; } body.one-page .view .two { display: inline; }
+.tool:hover, .tool:focus-visible { opacity: 1; }
+.tool:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+body.sheet .tools { display: none !important; }
+/* small screens: the text goes under the page, on the same paper */
+.phone-text { width: 100%; max-width: var(--bookw); box-sizing: border-box; background: #fff8ea; color: #2b2240; border-radius: 4px; padding: 14px 18px; font-size: 1.1rem; line-height: 1.55; box-shadow: 0 10px 24px -14px var(--shadow); }
+.phone-text p { margin: 0 0 .65em; } .phone-text p:last-child { margin: 0; }
+body.small .page .text { display: none; }
+/* the maker's credit: faint, in the bottom corner, like the credits in the Dua al-Faraj film's controls. The book is
+   sized to leave room for it (layout); on small screens, where the page scrolls, it follows the text instead. */
+.credit { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 10; font-size: 13px; color: var(--muted); opacity: .8; text-decoration: none; transition: opacity .2s; }
+.credit:hover, .credit:focus-visible { opacity: 1; text-decoration: underline; }
+.credit:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+body.small .credit { position: static; align-self: flex-end; }
+/* small screens held sideways: the text sits beside the page, in a column that scrolls */
+body.side .app { flex-direction: row; }
+body.side .stage { width: auto; flex: none; }
+body.side .phone-text { width: auto; flex: 0 1 400px; max-width: none; max-height: var(--ph); overflow-y: auto; }
+body.side .credit { position: fixed; }
+
+/* sheet mode (#sheet-<page>): one page filling the window, used to render the print files */
+body.sheet .app { padding: 0; display: block; }
+body.sheet .stage, body.sheet .phone-text, body.sheet .credit { display: none !important; }
+.sheet-page { position: relative; width: 100vw; aspect-ratio: 1600 / 1131; }
+/* print: one page per landscape A4 sheet */
+.printset { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  body { background: #fff; }
+  .app { padding: 0; display: block; }
+  .stage, .phone-text, .tools, .credit { display: none !important; }
+  .printset { display: block !important; }
+  .printset .sheet-page { width: 297mm; height: 210mm; aspect-ratio: auto; break-after: page; }
+}
+</style>
+
+<div class="app">
+  <div class="tools">
+    <button class="tool view" id="view" type="button" aria-label="One page at a time" title="One page at a time" hidden>
+      <svg class="one" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <svg class="two" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h18v10H3zM12 7.5v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="tool fs" id="fs" type="button" aria-label="Full screen" title="Full screen (F)" hidden>
+      <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="stage">
+    <button class="nav prev" id="prev" type="button" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="book closed" id="book" aria-live="polite">
+      <div class="slot l" id="slotL"></div>
+      <div class="slot r" id="slotR"></div>
+    </div>
+    <button class="nav next" id="next" type="button" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="phone-text" id="phoneText" hidden></div>
+  <a class="credit" id="credit" href="https://www.linkedin.com/in/faizan-abbas-b774a2217/" target="_blank" rel="noopener">by Faizan Abbas</a>
+  <div class="printset" id="printset"></div>
+</div>
+
+<script>
+/* The Littlest Khadim: the pages in book order (cover, inside cover, title page, story pages).
+   The pictures are Blender renders in pages/ (text-free; the reader sets the text). The inside cover and the
+   title page are drawn here, in the book's own colours: mawkib green and lamp gold. */
+const LK = (() => {
+  const W = 1600, H = 1131;
+  let n = 0;
+  const grain = id => `<filter id="${id}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="7"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 .5  0 0 0 0 .42  0 0 0 0 .34  0 0 0 1.1 -.45"/></filter>`;
+  /* an eight-pointed star (two overlapping squares), centre (x, y), radius r */
+  const star8 = (x, y, r, fill, extra = '') => `<g transform="translate(${x} ${y})" ${extra}><rect x="${-r * .7}" y="${-r * .7}" width="${r * 1.4}" height="${r * 1.4}" fill="${fill}"/>
+    <rect x="${-r * .7}" y="${-r * .7}" width="${r * 1.4}" height="${r * 1.4}" fill="${fill}" transform="rotate(45)"/></g>`;
+
+  function endpaper() {
+    const id = ++n;
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The inside cover: a pattern of gold eight-pointed stars on deep green">
+      <defs><linearGradient id="lkEp${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#215242"/><stop offset="1" stop-color="#16382d"/></linearGradient>
+        <pattern id="lkPat${id}" width="120" height="120" patternUnits="userSpaceOnUse">
+          ${star8(60, 60, 22, '#d6b469')}<circle cx="60" cy="60" r="8" fill="#1d4a3a"/>
+          ${[[0, 0], [120, 0], [0, 120], [120, 120]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#d6b469"/>`).join('')}
+        </pattern>${grain('lkGr' + id)}</defs>
+      <rect width="${W}" height="${H}" fill="url(#lkEp${id})"/>
+      <rect width="${W}" height="${H}" fill="url(#lkPat${id})" opacity=".3"/>
+      <rect width="${W}" height="${H}" filter="url(#lkGr${id})" opacity=".35"/>
+    </svg>`;
+  }
+
+  function titlePage() {
+    const id = ++n;
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Title page: The Littlest Khadim, a Kumayl and Fizza story of the walk to Karbala">
+      <defs><radialGradient id="lkTp${id}" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e6d2"/></radialGradient>${grain('lkGr' + id)}</defs>
+      <rect width="${W}" height="${H}" fill="url(#lkTp${id})"/>
+      ${star8(800, 330, 54, '#d6b469')}<circle cx="800" cy="330" r="22" fill="#215242"/><circle cx="800" cy="330" r="8" fill="#d6b469"/>
+      <g font-family="'Baloo 2', 'Trebuchet MS', system-ui, sans-serif" text-anchor="middle">
+        <text x="800" y="512" font-size="30" font-weight="700" letter-spacing="7" fill="#2f6b4f">KUMAYL &amp; FIZZA</text>
+        <text x="800" y="640" font-size="108" font-weight="800" fill="#1d3f33">The Littlest Khadim</text>
+        <path d="M600 690 C700 706 900 706 1000 690" stroke="#d6a43a" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <text x="800" y="770" font-size="36" font-weight="600" fill="#5b5370">A story of the walk to Karbala</text>
+        <text x="800" y="960" font-size="44" font-family="'Amiri', serif" fill="#8a7a5a">زيارة الأربعين</text>
+      </g>
+      <rect width="${W}" height="${H}" filter="url(#lkGr${id})" opacity=".25"/>
+    </svg>`;
+  }
+  return { endpaper, titlePage };
+})();
+
+const render3d = (src, alt) => `<img src="${src}" alt="${alt}">`;
+
+const PAGES = [
+  { id: 'cover', label: 'Cover', art: () => render3d('pages/cover.jpg', 'Fizza holds out a bottle of water and Kumayl a stack of cups beside the tents on the road to Karbala, with the golden domes far ahead'), text: null },
+  { id: 'endpaper', label: 'Inside cover', art: () => LK.endpaper(), text: null },
+  { id: 'title', label: 'Title page', art: () => LK.titlePage(), text: null },
+  { id: 'p1', label: 'Page 1', art: () => render3d('pages/p1.jpg', 'At dawn on the road to Karbala, the family walks away from us among the pilgrims, past pole number 1'),
+    panel: { left: 3.0, top: 3.6, width: 31, css: 'font-size:1.63cqw;line-height:1.42;padding:1.8cqw 2.1cqw;background:rgba(255,249,238,.9)' },
+    text: [
+      'It was the month of Safar, and the road was full of people.',
+      'Grandpas with walking sticks. Mamas pushing prams. Black flags and green flags, all fluttering the same way.',
+      '<span class="said">“Where is everyone going?”</span> asked Fizza.',
+      '<span class="said">“Where we are going,”</span> said Baba. <span class="said">“To Karbala, to visit Imam Hussain (AS).”</span>',
+      'Mama gave Fizza a little spray bottle of rose water. <span class="said">“For when you get hot,”</span> she said.',
+      'Beside the road stood a tall pole with a number on it: <span class="big">1</span>.',
+      '<span class="said">“When we get to pole 1452,”</span> said Kumayl, <span class="said">“we’ll be there!”</span>'
+    ] }
+  ,{ id: 'p2', label: 'Page 2', art: () => render3d('pages/p2.jpg', 'Khadims at a roadside tent hold out water and tea under a banner that says Hala bil-zuwwar; a boy offers Fizza a box of tissues while her family looks on'),
+    panel: { left: 3.0, top: 71.2, width: 94, css: 'column-count:2;column-gap:3.2%;font-size:1.54cqw;line-height:1.42;padding:1.8cqw 2.1cqw;background:rgba(255,249,238,.9)' },
+    text: [
+      'All along the road, people were waiting. Not to walk, but to help.',
+      '<span class="said">“Hala bil-zuwwar!”</span> they called. <span class="said">“Welcome, welcome, pilgrims!”</span>',
+      'They poured sweet tea into little glasses. They handed out warm bread, sticky dates and icy water.',
+      'A boy no bigger than Kumayl ran up with a box of tissues. <span class="said">“Please, take one!”</span> he begged, as if they were doing <em>him</em> a favour.',
+      '<span class="said">“Who are they?”</span> whispered Fizza.',
+      '<span class="said">“They are khadims,”</span> said Mama. <span class="said">“They serve the pilgrims of Imam Hussain (AS). To them, it is the best job in the world.”</span>'
+    ] }
+];
+
+</script>
+<script>
+/* each page is drawn fresh wherever it appears, so no two copies share SVG ids */
+function pageHTML(p) {
+  if (!p) return '<div class="blank"></div>';
+  const panel = p.text ? `<div class="text" style="left:${p.panel.left}%;top:${p.panel.top}%;width:${p.panel.width}%;${p.panel.css || ''}">${p.text.map(t => `<p>${t}</p>`).join('')}</div>` : '';
+  return `<section class="page" aria-label="${p.label}">${p.art()}${panel}</section>`;
+}
+
+const app = document.querySelector('.app'), bookEl = document.getElementById('book'), slotL = document.getElementById('slotL'), slotR = document.getElementById('slotR');
+const prevBtn = document.getElementById('prev'), nextBtn = document.getElementById('next'), phoneText = document.getElementById('phoneText');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- sheet mode for the print renders ---------- */
+const sheetId = location.hash.startsWith('#sheet-') ? location.hash.slice(7) : null;
+if (sheetId) {
+  document.body.classList.add('sheet');
+  const p = PAGES.find(q => q.id === sheetId) || PAGES[0];
+  app.insertAdjacentHTML('beforeend', `<div class="sheet-page">${pageHTML(p)}</div>`);
+}
+
+/* ---------- the book ----------
+   Two pages: spread k shows pages 2k-1 (left) and 2k (right); spread 0 is the closed front cover.
+   One page: position i shows page i. */
+let mode = 'spread', pos = 0, busy = false;
+/* where this reader left off, kept per book: the books can share one site (one origin) */
+const POS_KEY = 'book-pos:' + document.title;
+const lastSpread = Math.floor(PAGES.length / 2);
+const spread = k => k === 0 ? [null, PAGES[0]] : [PAGES[2 * k - 1] || null, PAGES[2 * k] || null];
+const visible = () => mode === 'spread' ? spread(pos) : [null, PAGES[pos]];
+const maxPos = () => mode === 'spread' ? lastSpread : PAGES.length - 1;
+
+function fill(slot, p, spineSide, hide = false) {
+  slot.innerHTML = hide ? '' : pageHTML(p) + `<div class="fold ${spineSide}"></div>`;
+  slot.classList.toggle('empty', hide);
+}
+function render() {
+  const [l, r] = visible();
+  bookEl.classList.toggle('closed', mode === 'spread' && pos === 0);
+  bookEl.classList.toggle('single', mode === 'single');
+  slotL.hidden = mode === 'single';
+  if (mode === 'spread') fill(slotL, l, 'sR', pos === 0);
+  fill(slotR, r, 'sL');
+  prevBtn.disabled = pos === 0;
+  nextBtn.disabled = pos === maxPos();
+  const txt = document.body.classList.contains('small') && r && r.text ? r.text : null;
+  phoneText.hidden = !txt;
+  phoneText.innerHTML = txt ? txt.map(t => `<p>${t}</p>`).join('') : '';
+  try { localStorage.setItem(POS_KEY, JSON.stringify({ mode, pos })); } catch (e) { /* storage is optional */ }
+}
+
+/* sizes: two facing pages when each can be at least 560 px wide, otherwise one page at a time. Where two fit, the
+   reader can still choose one page at a time (the corner switch): the page fills the window and the text is bigger.
+   The choice is kept for all the books, since it is about the reader's eyes, not the book. */
+const VIEW_KEY = 'book-view', viewBtn = document.getElementById('view');
+const credit = document.getElementById('credit');
+let onePage = false;
+try { onePage = localStorage.getItem(VIEW_KEY) === 'one'; } catch (e) { /* storage is optional */ }
+function layout() {
+  const arrows = 2 * 48, fullW = document.documentElement.clientWidth - 32, availH = Math.max(240, window.innerHeight - 40 - (credit.offsetHeight + 16));
+  const two = Math.min((fullW - arrows) / 2, availH * 1.4142), fits = two >= 560;
+  viewBtn.hidden = !fits;
+  document.body.classList.toggle('one-page', fits && onePage);
+  viewBtn.setAttribute('aria-label', onePage ? 'Two pages' : 'One page at a time');
+  viewBtn.title = onePage ? 'Two pages' : 'One page at a time';
+  if (fits && !onePage) mode = 'spread';
+  else { if (mode === 'spread') pos = pos === 0 ? 0 : 2 * pos - 1; mode = 'single'; }
+  if (mode === 'spread' && document.body.dataset.mode === 'single') pos = pos === 0 ? 0 : Math.floor((pos + 1) / 2);
+  document.body.dataset.mode = mode;
+  const small = mode === 'single' && Math.min(fullW - arrows, availH * 1.4142) < 520;
+  const pw = Math.floor(mode === 'spread' ? two : Math.min(small ? fullW : fullW - arrows, availH * 1.4142));
+  const root = document.documentElement.style;
+  root.setProperty('--pw', pw + 'px');
+  root.setProperty('--ph', Math.round(pw / 1.4142) + 'px');
+  root.setProperty('--bookw', (mode === 'spread' ? 2 * pw : pw) + 'px');
+  document.body.classList.toggle('small', small);
+  /* held sideways, put the text beside the page when there is room for a column of it */
+  document.body.classList.toggle('side', small && window.innerWidth > window.innerHeight && fullW - pw - 16 >= 260);
+}
+
+/* turn one page: a leaf rotates about the spine, darkening as it lifts and lightening as it lands. The new pages are
+   drawn first and the turn starts on the frame after, so a heavy page (the 2D art is live SVG) doesn't eat into it. */
+function turn(dir) {
+  if (busy) return;
+  const to = pos + dir;
+  if (to < 0 || to > maxPos()) return;
+  if (reduceMotion) { pos = to; render(); return; }
+  busy = true;
+  const timing = { duration: 900, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' };
+  const leaf = document.createElement('div');
+  let front, back, from = 0, toAngle, frontSide = 'sL', backSide = 'sR', cover = false;
+  if (mode === 'spread') {
+    const cur = spread(pos), nxt = spread(to);
+    if (dir > 0) { leaf.className = 'leaf fwd'; front = cur[1]; back = nxt[0]; toAngle = -180; fill(slotR, nxt[1], 'sL'); }
+    else { leaf.className = 'leaf bwd'; front = cur[0]; back = nxt[1]; toAngle = 180; frontSide = 'sR'; backSide = 'sL'; fill(slotL, nxt[0], 'sR', to === 0); }
+    cover = pos === 0 || to === 0;
+  } else {
+    leaf.className = 'leaf fwd';
+    if (dir > 0) { front = PAGES[pos]; back = null; toAngle = -180; fill(slotR, PAGES[to], 'sL'); }
+    else { front = PAGES[to]; back = null; from = -180; toAngle = 0; }
+  }
+  leaf.innerHTML = `<div class="face f">${pageHTML(front)}<div class="fold ${frontSide}"></div><div class="dim"></div></div>` +
+    `<div class="face b">${pageHTML(back)}<div class="fold ${backSide}"></div><div class="dim"></div></div>`;
+  leaf.style.transform = `rotateY(${from}deg)`;
+  bookEl.appendChild(leaf);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (cover) {
+      bookEl.classList.remove('closed');
+      bookEl.animate([{ transform: pos === 0 ? 'translateX(-25%)' : 'none' }, { transform: to === 0 ? 'translateX(-25%)' : 'none' }], timing);
+    }
+    const anim = leaf.animate([{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${toAngle}deg)` }], timing);
+    const [dimF, dimB] = leaf.querySelectorAll('.dim'), lift = [{ opacity: 0 }, { opacity: .45, offset: .5 }, { opacity: .45 }], land = [{ opacity: .45 }, { opacity: .45, offset: .5 }, { opacity: 0 }];
+    dimF.animate(from === 0 ? lift : land, timing);
+    dimB.animate(from === 0 ? land : lift, timing);
+    anim.finished.then(() => {
+      pos = to;
+      bookEl.getAnimations().forEach(a => a.cancel());
+      render();
+      leaf.remove();
+      busy = false;
+    });
+  }));
+}
+
+prevBtn.addEventListener('click', () => turn(-1));
+nextBtn.addEventListener('click', () => turn(1));
+/* one page at a time (phones), the page turns both ways: a tap on its left third goes back, anywhere else forward,
+   as in e-readers; with two pages, each page turns its own way */
+slotR.addEventListener('click', e => {
+  const r = slotR.getBoundingClientRect();
+  turn(mode === 'single' && e.clientX - r.left < r.width / 3 ? -1 : 1);
+});
+slotL.addEventListener('click', () => turn(-1));
+/* full screen: the whole page (book on its cloth) fills the screen; the book grows to fit */
+const fsBtn = document.getElementById('fs'), fsRoot = document.documentElement;
+const inFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+fsBtn.hidden = !!sheetId || !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function toggleFs() {
+  try {
+    const p = inFs() ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+                     : (fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen).call(fsRoot);
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* full screen is optional */ }
+}
+function fsChanged() {
+  const on = inFs();
+  document.body.classList.toggle('fullscreen', on);
+  fsBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  fsBtn.title = on ? 'Exit full screen (F)' : 'Full screen (F)';
+}
+fsBtn.addEventListener('click', toggleFs);
+viewBtn.addEventListener('click', () => {
+  if (busy) return;
+  onePage = !onePage;
+  try { localStorage.setItem(VIEW_KEY, onePage ? 'one' : 'two'); } catch (e) { /* storage is optional */ }
+  layout(); render();
+});
+document.addEventListener('fullscreenchange', fsChanged);
+document.addEventListener('webkitfullscreenchange', fsChanged);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') turn(1);
+  else if (e.key === 'ArrowLeft') turn(-1);
+  else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !fsBtn.hidden) toggleFs();
+});
+let sx = null;
+bookEl.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+bookEl.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) turn(dx < 0 ? 1 : -1); sx = null; });
+let rz = null;
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!busy) { layout(); render(); } }, 150); });
+
+/* ---------- start closed on the cover, at the page a #p<n> link names, or where this reader left off ---------- */
+if (!sheetId) {
+  layout();
+  const named = PAGES.findIndex(p => '#' + p.id === location.hash);
+  if (named >= 0) pos = mode === 'spread' ? Math.floor((named + 1) / 2) : named;
+  else {
+    try { const s = JSON.parse(localStorage.getItem(POS_KEY) || 'null'); if (s && s.mode === mode && s.pos >= 0 && s.pos <= maxPos()) pos = s.pos; } catch (e) { /* storage is optional */ }
+  }
+  render();
+}
+addEventListener('beforeprint', () => { document.getElementById('printset').innerHTML = PAGES.map(p => `<div class="sheet-page">${pageHTML(p)}</div>`).join(''); });
+</script>
+</body>
+</html>

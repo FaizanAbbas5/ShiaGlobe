@@ -1,0 +1,14 @@
+{
+  "name": "karbala-narration",
+  "private": true,
+  "description": "Records the narration of the Journey to Karbala with the Kokoro speech model",
+  "type": "module",
+  "scripts": {
+    "postinstall": "node patch-kokoro.cjs",
+    "record": "node record.mjs"
+  },
+  "dependencies": {
+    "@breezystack/lamejs": "1.2.7",
+    "kokoro-js": "1.2.1"
+  }
+}
