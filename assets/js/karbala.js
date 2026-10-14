@@ -20,6 +20,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // a phone in either orientation (a sideways phone is wider than 760 px), or a narrow window
 const MOBILE = Math.min(screen.width, screen.height) <= 600 || matchMedia('(max-width: 760px)').matches;
+// A phone's picture is about half as many pixels tall as a computer's, so a figure at a given distance covers half as
+// many: the distances at which people and horses change to their lighter versions shrink to match (they change at the
+// size on screen they do on a computer).
+const LOD = MOBILE ? .62 : 1;
 function rng(seed) {
   return () => {
     seed = seed + 0x6D2B79F5 | 0;
@@ -72,7 +76,7 @@ try {
   $('loadMsg').textContent = 'This prototype needs WebGL, which is turned off in this browser.';
   throw err;
 }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 1.75));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MOBILE ? 2 : 1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -87,6 +91,10 @@ const composer = MOBILE
   : new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), .75, .5, .86);
+// The glow is blurred over a set number of its own pixels, so its size on screen depends on the resolution it works at.
+// On a phone it works at 1.5 pixels per CSS pixel whatever the picture's resolution: the lights glow as they always
+// have there, and the sharper picture does not make the glow cost more.
+if (MOBILE) { const setSize = bloom.setSize.bind(bloom); bloom.setSize = (w, h) => { const k = Math.min(1, 1.5 / renderer.getPixelRatio()); setSize(Math.round(w * k), Math.round(h * k)); }; }
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const PSCALE = { value: 500 };
@@ -1148,7 +1156,7 @@ class CamelUnit {
     this.geo = tpl.geo.clone();
     this.base = tpl.geo.attributes.position.array;
     this.arr = this.geo.attributes.position.array;
-    this.mesh = new THREE.Mesh(this.geo, tpl.mat); this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.frustumCulled = false;
+    this.mesh = new THREE.Mesh(this.geo, tpl.mat); this.mesh.castShadow = true; this.mesh.receiveShadow = true; cullBySphere(this.mesh, 1.3);
     this.body = new THREE.Group(); this.body.add(this.mesh);
     this.group = new THREE.Group(); this.group.add(this.body);
     this.phase = idx * 1.7; this.amp = 0; this.lantern = null;
@@ -1242,7 +1250,17 @@ const RIDER_DRESS = {
   ],
 };
 const LR_V = Array.from({ length: 13 }, () => new THREE.Vector3()), LR_Q = Array.from({ length: 6 }, () => new THREE.Quaternion());
-const RIDER_FAR = 32;   // metres from the camera beyond which a soldier is drawn as the light rider
+const RIDER_FAR = 32 * LOD;   // metres from the camera beyond which a soldier is drawn as the light rider
+// Animated meshes are left out of the picture when they are out of view. Their bounds as modelled (standing still), made
+// half as big again so that a stride, a gallop or a rider's pose stays inside; computed once per shape.
+const CULL_SPHERES = new WeakMap();
+function cullBySphere(mesh, pad = 1.5) {
+  const g = mesh.geometry;
+  let sp = CULL_SPHERES.get(g);
+  if (!sp) { if (!g.boundingSphere) g.computeBoundingSphere(); sp = g.boundingSphere.clone(); sp.radius *= pad; CULL_SPHERES.set(g, sp); }
+  if (mesh.isSkinnedMesh) mesh.boundingSphere = sp; else g.boundingSphere = sp;
+  mesh.frustumCulled = true;
+}
 const LR_UP = new THREE.Vector3(0, 1, 0);
 
 // rotate a bone by a world-space rotation, keeping its children attached
@@ -1384,8 +1402,8 @@ class LiveRider {
     this.b = {};
     this.root.traverse(o => {
       if (o.isSkinnedMesh) {
-        o.frustumCulled = false; o.castShadow = true; o.receiveShadow = true;
-        o.geometry = tpl.variants[kind][v];
+        o.castShadow = true; o.receiveShadow = true;
+        o.geometry = tpl.variants[kind][v]; cullBySphere(o);
       }
       if (o.isBone) this.b[o.name] = o;
     });
@@ -1441,7 +1459,7 @@ class HorseUnit {
     this.tpl = tpl;
     this.inst = SkeletonUtils.clone(tpl.root);
     this.inst.traverse(o => {
-      if (o.isSkinnedMesh) { o.geometry = tpl.variants[variant]; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; this.mesh = o; }
+      if (o.isSkinnedMesh) { o.geometry = tpl.variants[variant]; o.castShadow = true; o.receiveShadow = true; cullBySphere(o); this.mesh = o; }
       if (o.isBone && o.name === 'Torso') this.torso = o;
       if (o.isBone && o.name === 'Back') this.back = o;
       if (o.isBone && o.name === 'Head') this.head = o;
@@ -2324,7 +2342,7 @@ function robedGeoSimple(pose, look) {
   const g = mergeGeometries(parts); g.computeVertexNormals();
   return g;
 }
-const CROWD_FAR2 = 45 * 45, crowdCam = new THREE.Vector3();
+const CROWD_FAR2 = (45 * LOD) ** 2, crowdCam = new THREE.Vector3();
 class Crowd {
   constructor(group, looks, capacity) {
     const mk = (geo, mat) => {
@@ -3311,7 +3329,7 @@ function standingCavalry(parent, spots, hf, near = false) {
 }
 // a standing line of horsemen whose riders near the camera are the light version of the rider, the rest the simple
 // figure; re-sorted every frame while it is shown
-const CAV_LINES = [], CAV_NEAR2 = 70 * 70;
+const CAV_LINES = [], CAV_NEAR2 = (70 * LOD) ** 2;
 class CavalryLine {
   constructor(group, spots, hf) {
     this.group = group; const far = massGeos(TPL.horse), near = massGeosNear(TPL.horse);
@@ -4913,7 +4931,9 @@ function ensureScene(name) {
 }
 function enterScene(name) {
   ensureScene(name);
-  for (const k in SCENES) SCENES[k].group.visible = k === name;
+  // a hidden scene is skipped when the world matrices are brought up to date each frame (three.js walks hidden objects
+  // too, and every scene visited stays in the graph: thousands of objects by the end of the story)
+  for (const k in SCENES) SCENES[k].group.visible = SCENES[k].group.matrixWorldAutoUpdate = k === name;
   H = SCENES[name].h; curScene = name;
   DUST.clear(); SPARKS.clear(); SPLASH.clear(); SMOKE.clear(); EMBER_GLOW.clear(); NOOR_MOTES.clear();
 }
@@ -5507,16 +5527,21 @@ $('voiceSel').onchange = () => {
 // ─────────── main loop ───────────
 // A device that cannot keep up (typical frame slower than 1/45 s over two seconds of the story; on a phone 1/28 s, as
 // a narrated story is fine at 30 frames a second and sharpness matters more there) steps down a level: a lower
-// resolution, then a smaller shadow map. It never draws below one pixel per CSS pixel: lower levels made phones look
-// blurred and pixelated. When frames are quick again (typical frame under 1/80 s, on a phone 1/45 s, over four
-// seconds, and the last change ten seconds ago) it steps back up, so one heavy scene does not leave the rest of the
-// story blurred. The median ignores one-off pauses; scene changes and pauses are not
-// counted. Nothing here rebuilds shaders (changing the kind of shadow would, for seconds of frozen picture), and the
-// glow stays at every level: it is what makes the lights of the family read as light.
-const QUALITY = { level: 0, times: [], at: 0 };
-const Q_LEVELS = [{ pr: Infinity, sh: 2048 }, { pr: 1.25, sh: 2048 }, { pr: 1, sh: 2048 }, { pr: 1, sh: 1024 }];
+// resolution, then a smaller shadow map. Phones start at two pixels per CSS pixel (their screens have about three; at
+// 1.5 the picture looked soft) and step down a quarter at a time. It never draws below one pixel per CSS pixel: lower
+// levels made phones look blurred and pixelated. A lower resolution only helps when the graphics chip is what holds
+// the frame back: when the frame's own work (moving the story along and handing the drawing over) takes most of the
+// frame, the resolution stays, as dropping it would only blur the picture. When frames are quick again (typical frame
+// under 1/80 s, on a phone 1/45 s, over four seconds, and the last change ten seconds ago) it steps back up, so one
+// heavy scene does not leave the rest of the story blurred. The median ignores one-off pauses; scene changes and
+// pauses are not counted. Nothing here rebuilds shaders (changing the kind of shadow would, for seconds of frozen
+// picture), and the glow stays at every level: it is what makes the lights of the family read as light.
+const QUALITY = { level: 0, times: [], work: [], at: 0, lastWork: 0 };
+const Q_LEVELS = MOBILE
+  ? [{ pr: 2, sh: 1024 }, { pr: 1.75, sh: 1024 }, { pr: 1.5, sh: 1024 }, { pr: 1.25, sh: 1024 }, { pr: 1, sh: 512 }]
+  : [{ pr: Infinity, sh: 2048 }, { pr: 1.25, sh: 2048 }, { pr: 1, sh: 2048 }, { pr: 1, sh: 1024 }];
 const Q_SLOW = MOBILE ? 1 / 28 : 1 / 45, Q_FAST = MOBILE ? 1 / 45 : 1 / 80;
-const Q_PR0 = Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 1.75);
+const Q_PR0 = Math.min(window.devicePixelRatio || 1, MOBILE ? 2 : 1.75);
 function setQuality(level) {
   const L = Q_LEVELS[level], pr = Math.min(Q_PR0, L.pr);
   QUALITY.level = level; QUALITY.at = TIME;
@@ -5524,18 +5549,19 @@ function setQuality(level) {
   if (key.shadow.mapSize.x !== L.sh) { key.shadow.mapSize.set(L.sh, L.sh); if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; } }
 }
 function adaptQuality(raw) {
-  if (phase !== 'story' || document.hidden || paused || busy) { QUALITY.times.length = 0; return; }
-  QUALITY.times.push(raw);
+  if (phase !== 'story' || document.hidden || paused || busy) { QUALITY.times.length = QUALITY.work.length = 0; return; }
+  QUALITY.times.push(raw); QUALITY.work.push(QUALITY.lastWork);
   if (QUALITY.times.length !== 120 && QUALITY.times.length !== 240) return;
-  const med = QUALITY.times.slice().sort((a, b) => a - b)[QUALITY.times.length >> 1];
-  if (med > Q_SLOW && QUALITY.level < Q_LEVELS.length - 1) {
+  const median = a => a.slice().sort((x, y) => x - y)[a.length >> 1];
+  const med = median(QUALITY.times), work = median(QUALITY.work) / 1000;
+  if (med > Q_SLOW && work < med * .7 && QUALITY.level < Q_LEVELS.length - 1) {
     // skip levels that would change nothing on this screen (a phone already drawing at 1.5, say)
     let l = QUALITY.level + 1; while (l < Q_LEVELS.length - 1 && Math.min(Q_PR0, Q_LEVELS[l].pr) === renderer.getPixelRatio() && Q_LEVELS[l].sh === key.shadow.mapSize.x) l++;
-    setQuality(l); QUALITY.times.length = 0; return;
+    setQuality(l); QUALITY.times.length = QUALITY.work.length = 0; return;
   }
   if (QUALITY.times.length < 240) return;
   if (med < Q_FAST && QUALITY.level > 0 && TIME - QUALITY.at > 10) setQuality(QUALITY.level - 1);
-  QUALITY.times.length = 0;
+  QUALITY.times.length = QUALITY.work.length = 0;
 }
 const clock = new THREE.Clock();
 // the still of the first scene, shown while the scenes are prepared, fades once the scene itself has been drawn
@@ -5553,6 +5579,7 @@ function compileScene(maxMs) {
 }
 function frame() {
   if (HOLD_RENDER) { requestAnimationFrame(frame); return; }
+  const work0 = performance.now();
   if (POSTER && ++POSTER.n > 3) { POSTER.el.classList.add('gone'); POSTER = null; }
   const raw = clock.getDelta(), dt = paused ? 0 : Math.min(raw, .05);
   adaptQuality(raw);
@@ -5622,6 +5649,7 @@ function frame() {
   for (const n of NOORS) n.update(TIME, dt);
   updateLightPool();
   composer.render(dt);
+  QUALITY.lastWork = performance.now() - work0;
   requestAnimationFrame(frame);
 }
 
