@@ -18,7 +18,8 @@ const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const easeOutBack = t => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MOBILE = matchMedia('(max-width: 760px)').matches;
+// a phone in either orientation (a sideways phone is wider than 760 px), or a narrow window
+const MOBILE = Math.min(screen.width, screen.height) <= 600 || matchMedia('(max-width: 760px)').matches;
 function rng(seed) {
   return () => {
     seed = seed + 0x6D2B79F5 | 0;
@@ -79,7 +80,11 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x000000, .003);
 const camera = new THREE.PerspectiveCamera(40, 1, .3, 6000);
-const composer = new EffectComposer(renderer);
+// phones draw at a lower resolution than their screens, so their scenes are anti-aliased (4x MSAA, which their
+// tile-based graphics chips do cheaply); without it the figures' edges looked jagged and pixelated
+const composer = MOBILE
+  ? new EffectComposer(renderer, new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 }))
+  : new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), .75, .5, .86);
 composer.addPass(bloom);
@@ -5064,8 +5069,29 @@ function goHome() {
   const intro = $('intro'); intro.hidden = false; intro.classList.remove('gone');
   $('beginBtn').focus();
 }
-$('beginBtn').onclick = () => { $('intro').classList.add('gone'); goTo(resumeIdx); };
-$('restartBtn').onclick = () => { mapStopShown = 0; mapCityShown = STEPS[0].mapCity || null; mapDraw($('bigSvg'), FULL_BOX, 0); setResume(0); $('intro').classList.add('gone'); goTo(0); };
+// Full screen as on a video site: the top-bar button (or F) fills the screen, and on a phone it also turns the story
+// sideways where the browser allows it (Android). On a phone, beginning the journey goes full screen by itself, so the
+// browser's own bars do not cut into the scenes. iPhones do not let pages go full screen, so the button is hidden there.
+const isPhone = () => matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 600;
+function enterFullscreen() {
+  if (document.fullscreenElement || !document.fullscreenEnabled) return;
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => { if (isPhone() && screen.orientation && screen.orientation.lock) return screen.orientation.lock('landscape'); })
+    .catch(() => {});
+}
+function toggleFullscreen() { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else enterFullscreen(); }
+function phoneFullscreen() { if (isPhone()) enterFullscreen(); }
+$('fsBtn').hidden = !document.fullscreenEnabled;
+$('fsBtn').onclick = toggleFullscreen;
+document.addEventListener('fullscreenchange', () => {
+  const on = !!document.fullscreenElement;
+  $('fsBtn').setAttribute('aria-pressed', on);
+  $('fsLbl').textContent = on ? 'Exit full screen' : 'Full screen';
+  $('fsBtn').title = on ? 'Exit full screen (F)' : 'Full screen (F)';
+  if (!on && screen.orientation && screen.orientation.unlock) try { screen.orientation.unlock(); } catch (e) { /* nothing was locked */ }
+});
+$('beginBtn').onclick = () => { phoneFullscreen(); $('intro').classList.add('gone'); goTo(resumeIdx); };
+$('restartBtn').onclick = () => { phoneFullscreen(); mapStopShown = 0; mapCityShown = STEPS[0].mapCity || null; mapDraw($('bigSvg'), FULL_BOX, 0); setResume(0); $('intro').classList.add('gone'); goTo(0); };
 $('homeBtn').onclick = goHome;
 $('pauseBtn').onclick = () => setPaused(!paused);
 $('pausedBadge').onclick = () => setPaused(false);
@@ -5077,6 +5103,7 @@ document.addEventListener('keydown', e => {
   if (phase !== 'story' || e.altKey || e.ctrlKey || e.metaKey || !$('outro').classList.contains('gone')) return;
   if (e.key === 'ArrowRight') { e.preventDefault(); next(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
   else if (e.key === 'h' || e.key === 'H') { e.preventDefault(); setCardState(cardState === 'hidden' ? 'compact' : 'hidden'); }
+  else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input,select,textarea') && !$('fsBtn').hidden) { e.preventDefault(); toggleFullscreen(); }
   else if (e.key === ' ' && !e.target.closest('button,select,input,textarea,a')) { e.preventDefault(); setPaused(!paused); }
 });
 // ─────────── sound: natural soundscapes built from filtered noise, mixed per scene (no music) ───────────
@@ -5478,14 +5505,17 @@ $('voiceSel').onchange = () => {
 };
 
 // ─────────── main loop ───────────
-// A device that cannot keep up (typical frame slower than 1/45 s over two seconds of the story) steps down a level:
-// a lower resolution, then a smaller shadow map, then lower resolution again. When frames are quick again (typical
-// frame under 1/80 s over four seconds, and the last change ten seconds ago) it steps back up, so one heavy scene does
-// not leave the rest of the story blurred. The median ignores one-off pauses; scene changes and pauses are not
+// A device that cannot keep up (typical frame slower than 1/45 s over two seconds of the story; on a phone 1/28 s, as
+// a narrated story is fine at 30 frames a second and sharpness matters more there) steps down a level: a lower
+// resolution, then a smaller shadow map. It never draws below one pixel per CSS pixel: lower levels made phones look
+// blurred and pixelated. When frames are quick again (typical frame under 1/80 s, on a phone 1/45 s, over four
+// seconds, and the last change ten seconds ago) it steps back up, so one heavy scene does not leave the rest of the
+// story blurred. The median ignores one-off pauses; scene changes and pauses are not
 // counted. Nothing here rebuilds shaders (changing the kind of shadow would, for seconds of frozen picture), and the
 // glow stays at every level: it is what makes the lights of the family read as light.
 const QUALITY = { level: 0, times: [], at: 0 };
-const Q_LEVELS = [{ pr: Infinity, sh: 2048 }, { pr: 1.25, sh: 2048 }, { pr: 1, sh: 2048 }, { pr: 1, sh: 1024 }, { pr: .8, sh: 1024 }, { pr: .65, sh: 1024 }];
+const Q_LEVELS = [{ pr: Infinity, sh: 2048 }, { pr: 1.25, sh: 2048 }, { pr: 1, sh: 2048 }, { pr: 1, sh: 1024 }];
+const Q_SLOW = MOBILE ? 1 / 28 : 1 / 45, Q_FAST = MOBILE ? 1 / 45 : 1 / 80;
 const Q_PR0 = Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 1.75);
 function setQuality(level) {
   const L = Q_LEVELS[level], pr = Math.min(Q_PR0, L.pr);
@@ -5498,13 +5528,13 @@ function adaptQuality(raw) {
   QUALITY.times.push(raw);
   if (QUALITY.times.length !== 120 && QUALITY.times.length !== 240) return;
   const med = QUALITY.times.slice().sort((a, b) => a - b)[QUALITY.times.length >> 1];
-  if (med > 1 / 45 && QUALITY.level < Q_LEVELS.length - 1) {
+  if (med > Q_SLOW && QUALITY.level < Q_LEVELS.length - 1) {
     // skip levels that would change nothing on this screen (a phone already drawing at 1.5, say)
     let l = QUALITY.level + 1; while (l < Q_LEVELS.length - 1 && Math.min(Q_PR0, Q_LEVELS[l].pr) === renderer.getPixelRatio() && Q_LEVELS[l].sh === key.shadow.mapSize.x) l++;
     setQuality(l); QUALITY.times.length = 0; return;
   }
   if (QUALITY.times.length < 240) return;
-  if (med < 1 / 80 && QUALITY.level > 0 && TIME - QUALITY.at > 10) setQuality(QUALITY.level - 1);
+  if (med < Q_FAST && QUALITY.level > 0 && TIME - QUALITY.at > 10) setQuality(QUALITY.level - 1);
   QUALITY.times.length = 0;
 }
 const clock = new THREE.Clock();

@@ -267,13 +267,19 @@ button{font:inherit;color:inherit}
 /* phones on their side: little height, so the map card and labels give way and Read more gets the full height */
 @media (max-height:500px) and (orientation:landscape){
   .brand .sub{display:none}
+  .pill .pl{display:none}
   .stamp{top:50px;max-width:38%}
   .stamp .date{font-size:20px}
   .stamp .stat{display:none}
   .minimap{display:none}
-  .caption{top:50px;left:calc(var(--gutter) + 38%);right:var(--gutter);width:auto;max-width:none;transform:none;text-align:left;padding:0;background:none}
-  .cap-text{font-size:16px}
-  .cap-text.long{font-size:14.5px}
+  /* the narration reads like subtitles: at the bottom, just above the buttons, so the people and their names stay clear */
+  .caption{top:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px));left:var(--gutter);right:auto;width:auto;max-width:calc(100% - 2*var(--gutter));transform:none;text-align:left;padding:6px 12px 8px;border-radius:12px;background:rgba(6,6,10,.55)}
+  .cap-title{font-size:10px}
+  .cap-text{margin-top:2px;font-size:15px;line-height:1.4}
+  .cap-text.long{font-size:13.5px}
+  body:has(#sermon:not([hidden])) .caption{opacity:0}
+  .lbl{font-size:11px;padding:2px 7px 3px}
+  .lbl .ar{display:none}
   .card,.card.expanded{top:50px;bottom:40px;max-height:none;width:min(440px,52%);padding:10px 14px 8px}
   .card:not(.expanded){top:auto}
   .card h2{font-size:19px}
@@ -289,10 +295,20 @@ button{font:inherit;color:inherit}
   .roll{top:50px;width:min(280px,36%)}
   .roll-h,.roll-i:not(.new),.roll-i i{display:none}
   .mapcard svg{width:auto;max-height:76vh;max-width:44vw}
-  .intro{align-items:flex-start}
-  .intro-inner{padding-block:56px 20px}
-  .intro h1{font-size:40px}
-  .intro-credit{position:static;display:table;margin:16px 0 0 auto}
+  /* the start screen fits without scrolling: the title and introduction on the left, the choices and Begin on the
+     right (if a very short screen still overflows, it starts at the top and scrolls rather than losing its heading) */
+  .intro{display:flex;align-items:flex-start;padding-top:0;background:linear-gradient(90deg,rgba(4,5,10,.9) 0%,rgba(4,5,10,.66) 55%,rgba(4,5,10,.5) 100%)}
+  .intro-inner{margin-block:auto;margin-left:0;max-width:none;width:100%;padding-block:50px 14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,330px);grid-template-areas:"head actions" "hint actions";column-gap:28px;align-items:center}
+  .intro-head{grid-area:head}
+  .intro-actions{grid-area:actions}
+  .intro .hint{grid-area:hint;align-self:start;margin-top:10px}
+  .intro h1{margin-top:8px;font-size:34px}
+  .ar-title{font-size:24px}
+  .lede{margin-top:6px;font-size:14.5px;line-height:1.5}
+  .aud-label{margin-top:0}
+  .narr-row{grid-template-columns:1fr}
+  .begin-row{margin-top:12px}
+  .intro-credit{position:absolute;display:inline;margin:0}
 }
 /* the one-time hint to turn a phone sideways */
 .rotate-hint{position:absolute;left:0;right:0;margin-inline:auto;width:max-content;bottom:calc(160px + 3vh + env(safe-area-inset-bottom,0px));z-index:12;display:flex;align-items:center;gap:10px;max-width:calc(100% - 2*var(--gutter));box-sizing:border-box;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--ivory);font-size:13.5px;line-height:1.35;cursor:pointer;transition:opacity .5s ease}

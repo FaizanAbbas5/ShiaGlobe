@@ -26,6 +26,7 @@
       <button class="pill" id="autoBtn" type="button" aria-pressed="true" title="Move on to the next scene automatically"><svg viewBox="0 0 24 24"><path d="M5 6l6 6-6 6"/><path d="M13 6l6 6-6 6"/></svg><span class="pl">Autoplay</span></button>
       <button class="pill" id="narrBtn" type="button" aria-pressed="false" title="Narration: the story read aloud" hidden><svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3v5H5a1 1 0 0 1-1-1z"/><path d="M20 15h-3v5h2a1 1 0 0 0 1-1z"/></svg><span class="pl">Narration</span></button>
       <button class="pill" id="soundBtn" type="button" aria-pressed="false" title="Background sound"><svg viewBox="0 0 24 24"><path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg><span class="pl">Sound</span></button>
+      <button class="pill" id="fsBtn" type="button" aria-pressed="false" title="Full screen (F)" hidden><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg><span class="pl" id="fsLbl">Full screen</span></button>
     </div>
   </header>
 
@@ -102,10 +103,13 @@
 
   <div class="overlay intro" id="intro">
     <div class="intro-inner">
+      <div class="intro-head">
       <div class="eyebrow">Tārīkh al-Shiʿa · Story mode in 3D</div>
       <h1>The Journey to Karbala</h1>
       <div class="ar-title ar" lang="ar" dir="rtl">الطريق إلى كربلاء</div>
       <p class="lede">Ride with the caravan of Imam Hussain (AS), from Medina to Karbala in 60–61 AH.</p>
+      </div>
+      <div class="intro-actions">
       <div class="aud-label" id="narrLabel" hidden>Listen or read?</div>
       <div class="narr-row" id="narrRow" hidden>
         <button class="aud" id="narrIntroBtn" type="button" aria-pressed="false"><b>Narration <span id="narrState">Off</span></b><span>The story is read aloud as you watch</span></button>
@@ -115,6 +119,7 @@
       <p class="narr-hint" id="narrHint" hidden>This browser only offers a basic, robotic-sounding voice. For a natural narrator, open the page in Microsoft Edge, or add an enhanced English voice in your device's speech settings.</p>
       <div class="begin-row"><button class="btn primary begin" id="beginBtn" type="button" disabled>Begin the journey →</button><button class="btn begin restart" id="restartBtn" type="button" hidden>Start again</button></div>
       <div class="loading" id="loading"><span class="spinner"></span><span id="loadMsg">Preparing the scenes…</span></div>
+      </div>
       <p class="hint">All seven chapters, about 20 minutes with narration. Use Continue or the ← → keys; press H to hide the text and just watch.</p>
       <a class="intro-credit" href="https://www.linkedin.com/in/faizan-abbas-b774a2217/" target="_blank" rel="noopener">by Faizan Abbas</a>
     </div>
