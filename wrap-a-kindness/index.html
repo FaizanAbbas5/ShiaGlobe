@@ -1511,6 +1511,10 @@ const PAGES = [
 
 </script>
 <script>
+/* site copy: the pictures were drawn once by tools/sync-stories.py, so a page turn shows images */
+PAGES.forEach(p => { p.art = () => `<img src="pages/${p.id}.jpg" alt="${p.label}">`; });
+</script>
+<script>
 /* each page is drawn fresh wherever it appears, so no two copies share SVG ids */
 function pageHTML(p) {
   if (!p) return '<div class="blank"></div>';

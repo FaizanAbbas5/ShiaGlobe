@@ -56,7 +56,7 @@ python -m http.server 8000
 
 Then open `http://localhost:8000/`.
 
-To update a story after it changes in its own project, run `python tools/sync-stories.py` (add `--thumbs` to redraw the card pictures).
+To update a story after it changes in its own project, run `python tools/sync-stories.py` (add `--thumbs` to redraw the card pictures). It needs Microsoft Edge and Pillow: the 2D book's pages are drawn to pictures for the site, so its page turns stay smooth on phones.
 
 ---
 

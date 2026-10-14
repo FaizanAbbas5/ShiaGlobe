@@ -3,7 +3,8 @@
 The stories are made in their own projects next to this repo. Their built pages are the same files that are
 published as claude.ai artifacts: page fragments without <html> or <head>. This script copies the built page and
 its files and puts a full HTML document around it, with the link-preview tags that WhatsApp and others read.
-It never rebuilds a story; build it in its own project first.
+It never rebuilds a story; build it in its own project first. The 2D book's pictures (live SVG in the book itself)
+are drawn to JPEGs for the site's copy, so its page turns stay smooth on phones (see prerender_pages).
 
     ../dua-faraj/film/index.html + recitation.mp3         ->  dua-al-faraj/
     ../jar-of-lights/dist/book.html                        ->  wrap-a-kindness/
@@ -15,6 +16,7 @@ Usage:  python tools/sync-stories.py            copy the pages
 """
 import argparse
 import html
+import re
 import shutil
 import subprocess
 import sys
@@ -52,6 +54,8 @@ STORIES = [
                        'a birthday present. But how do you wrap a kindness?',
         # the cover, as the reader renders it for print (#sheet-<page>)
         'thumb': {'query': '#sheet-cover', 'size': (1600, 1131)},
+        # its pictures are live SVG; the site's copy shows them as images (see prerender_pages)
+        'prerender': True,
     },
     {
         'slug': 'littlest-khadim',
@@ -110,6 +114,37 @@ def copy_story(story):
     print(f"{story['slug']}/  {len(src) // 1024} KB page, {len(story['files'])} supporting file(s)")
 
 
+def prerender_pages(story):
+    """Draws each page's picture once, as a JPEG, for a book whose pictures are live SVG (the 2D book): building and
+    painting those SVGs (blurs, grain, textures) during a page turn made the turns stutter on phones. The site's copy
+    then shows the pictures, and the reader still sets the text live. The book's own preview on claude.ai is untouched."""
+    from PIL import Image
+    out = SITE / story['slug']
+    page = (out / 'index.html').read_text(encoding='utf-8')
+    ids = re.findall(r"\{\s*id:\s*'([\w-]+)'", page[page.index('const PAGES'):])
+    pages = out / 'pages'
+    pages.mkdir(exist_ok=True)
+    for old in pages.glob('*.jpg'):
+        old.unlink()
+    with tempfile.TemporaryDirectory() as tmp:
+        # the pictures only: the same page with its text panels hidden, rendered one page at a time (#sheet-<page>)
+        art_only = Path(tmp) / 'art.html'
+        art_only.write_text(page.replace('</head>', '<style>.page .text{display:none!important}</style></head>', 1), encoding='utf-8')
+        for pid in ids:
+            png = Path(tmp) / f'{pid}.png'
+            screenshot(art_only, f'#sheet-{pid}', (1600, 1131), png)
+            Image.open(png).convert('RGB').save(pages / f'{pid}.jpg', quality=86, optimize=True, progressive=True)
+    # once the book's pages are defined, each page shows its picture instead of drawing itself
+    marker = '<script>\n/* each page is drawn fresh wherever it appears'
+    if page.count(marker) != 1:
+        sys.exit(f"{story['slug']}: can't find where the reader starts; has the reader changed?")
+    swap = ('<script>\n/* site copy: the pictures were drawn once by tools/sync-stories.py, so a page turn shows images */\n'
+            'PAGES.forEach(p => { p.art = () => `<img src="pages/${p.id}.jpg" alt="${p.label}">`; });\n</script>\n')
+    (out / 'index.html').write_text(page.replace(marker, swap + marker), encoding='utf-8')
+    size = sum(f.stat().st_size for f in pages.glob('*.jpg')) // 1024
+    print(f'  {len(ids)} page pictures in {story["slug"]}/pages/, {size} KB')
+
+
 def screenshot(page, query, size, png):
     """Edge's headless screenshot (remote debugging is blocked by policy here, but the CLI works)."""
     url = page.resolve().as_uri() + query
@@ -141,5 +176,7 @@ if __name__ == '__main__':
     args = ap.parse_args()
     for s in STORIES:
         copy_story(s)
+        if s.get('prerender'):
+            prerender_pages(s)
         if args.thumbs:
             make_thumb(s)
